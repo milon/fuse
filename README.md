@@ -1,5 +1,12 @@
 <p align="center">
-  <img src="art/banner.svg" alt="milon/fuse — HTTP-client-agnostic circuit breaker for PHP" width="100%">
+  <img src="https://raw.githubusercontent.com/milon/fuse/v1.0.0/art/banner.svg" alt="milon/fuse — HTTP-client-agnostic circuit breaker for PHP" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://packagist.org/packages/milon/fuse"><img src="https://img.shields.io/packagist/v/milon/fuse.svg" alt="Latest version"></a>
+  <a href="https://packagist.org/packages/milon/fuse"><img src="https://img.shields.io/packagist/php-v/milon/fuse.svg" alt="PHP version"></a>
+  <a href="https://github.com/milon/fuse/actions/workflows/tests.yml"><img src="https://github.com/milon/fuse/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/packagist/l/milon/fuse.svg" alt="License"></a>
 </p>
 
 # milon/fuse
@@ -61,7 +68,7 @@ Pass `isFailure` or `isSuccess` to `run()` when the defaults are wrong for a cal
 ## Install
 
 ```bash
-composer require milon/fuse
+composer require milon/fuse:^1.0
 ```
 
 Install Saloon only if you use the connector trait:

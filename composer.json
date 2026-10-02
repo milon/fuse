@@ -3,12 +3,26 @@
     "description": "HTTP-client-agnostic circuit breaker with optional Laravel and Saloon adapters",
     "type": "library",
     "license": "MIT",
+    "keywords": [
+        "circuit-breaker",
+        "fuse",
+        "laravel",
+        "php",
+        "resilience",
+        "saloon"
+    ],
     "authors": [
         {
             "name": "Nuruzzaman Milon",
             "email": "milon@punt.com"
         }
     ],
+    "homepage": "https://fuse.milon.im",
+    "support": {
+        "issues": "https://github.com/milon/fuse/issues",
+        "source": "https://github.com/milon/fuse",
+        "docs": "https://fuse.milon.im"
+    },
     "require": {
         "php": "^8.2"
     },
@@ -44,11 +58,17 @@
         "phpstan": "phpstan analyse --memory-limit=512M"
     },
     "extra": {
+        "branch-alias": {
+            "dev-master": "1.0.x-dev"
+        },
         "laravel": {
             "providers": [
                 "Milon\\Fuse\\Laravel\\FuseServiceProvider"
             ]
         }
+    },
+    "config": {
+        "sort-packages": true
     },
     "minimum-stability": "stable",
     "prefer-stable": true
