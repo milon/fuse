@@ -4,10 +4,6 @@
       <stop offset="0" stop-color="#f8fafc"/>
       <stop offset="1" stop-color="#e0e7ff"/>
     </linearGradient>
-    <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#facc15"/>
-      <stop offset="1" stop-color="#f97316"/>
-    </linearGradient>
     <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
       <path d="M32 0H0V32" fill="none" stroke="#1e293b" stroke-opacity="0.05" stroke-width="1"/>
     </pattern>
@@ -91,19 +87,18 @@
   </g>
   <path d="M312 350L368 332" stroke="#f97316" stroke-width="4" stroke-linecap="round"/>
 
-  <!-- Fuse icon -->
+  <!-- Fuse line icon (diagonal cartridge style) -->
   <g transform="translate(150 105)">
     <rect width="150" height="150" rx="36" fill="#ffffff" stroke="#c7d2fe" filter="url(#shadow)"/>
-    <!-- glass tube -->
-    <rect x="32" y="40" width="86" height="70" rx="14" fill="#e0f2fe" stroke="#7dd3fc" stroke-width="2.5"/>
-    <rect x="42" y="48" width="66" height="16" rx="8" fill="#ffffff" fill-opacity="0.75"/>
-    <!-- filament -->
-    <path d="M46 75C54 58 64 92 74 75S94 58 104 75" fill="none" stroke="url(#spark)" stroke-width="4" stroke-linecap="round"/>
-    <!-- metal end caps -->
-    <rect x="16" y="48" width="26" height="54" rx="6" fill="#94a3b8"/>
-    <rect x="108" y="48" width="26" height="54" rx="6" fill="#64748b"/>
-    <rect x="21" y="54" width="6" height="42" rx="3" fill="#f1f5f9" fill-opacity="0.85"/>
-    <rect x="113" y="54" width="6" height="42" rx="3" fill="#cbd5e1" fill-opacity="0.7"/>
+    <g transform="translate(75 75) rotate(-45)" fill="none" stroke="#6366f1" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="-52" y="-20" width="26" height="40" rx="4"/>
+      <rect x="-45" y="-11" width="12" height="22" rx="2.5"/>
+      <rect x="26" y="-20" width="26" height="40" rx="4"/>
+      <rect x="33" y="-11" width="12" height="22" rx="2.5"/>
+      <path d="M-26 -13H26"/>
+      <path d="M-26 13H26"/>
+      <path stroke-linejoin="miter" d="M-26 0H-18L-13 9L-7-9L-1 9L5-9L11 9L17-9L22 0H26"/>
+    </g>
   </g>
 
   <!-- Title -->

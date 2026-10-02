@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Fuse line icon" fill="none">
+  <g transform="translate(64 64) rotate(-45)" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left end cap -->
+    <rect x="-52" y="-20" width="26" height="40" rx="4"/>
+    <rect x="-45" y="-11" width="12" height="22" rx="2.5"/>
+    <!-- Right end cap -->
+    <rect x="26" y="-20" width="26" height="40" rx="4"/>
+    <rect x="33" y="-11" width="12" height="22" rx="2.5"/>
+    <!-- Tube walls -->
+    <path d="M-26 -13H26"/>
+    <path d="M-26 13H26"/>
+    <!-- Zigzag: H, down, peak, valley, peak, valley, peak, down to H -->
+    <path stroke-linejoin="miter" d="M-26 0H-18L-13 9L-7-9L-1 9L5-9L11 9L17-9L22 0H26"/>
+  </g>
+</svg>
