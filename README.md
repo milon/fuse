@@ -39,20 +39,20 @@ While the circuit is **open**, `run()` throws `Milon\Fuse\CircuitOpenException` 
 
 ## Terminology
 
-| Term | Meaning |
-| --- | --- |
-| **Circuit** | One protected dependency, such as a billing API. Circuits are independent. |
-| **Closed** | The normal state. Calls run. Counted failures are remembered until they age out of the window, or until a success clears them. |
-| **Open** | The dependency is treated as down. Calls are rejected for the open duration. |
-| **Half-open** | The cooldown has ended. A limited number of trial calls (probes) are allowed through. |
-| **Probe** | One trial call while half-open. `half_open_probes` is both how many probes may be in flight and how many successes are required before the circuit closes. One counted failure re-opens the circuit immediately. |
-| **Failure threshold** | How many counted failures inside the window open the circuit. |
-| **Failure window** | How far back those failures are counted. A failure older than the window no longer counts. |
-| **Open duration** | How long an open circuit rejects calls before the next one may probe. |
-| **Counted failure** | A timeout, a connection error, or an HTTP status in `counted_http_statuses`. On Saloon, 502, 503, and 504 count by default. A plain `RuntimeException` counts only when its message looks like a timeout or a connection failure. |
-| **Ignored error** | Anything else, such as a validation error or a 404. It is rethrown and does not open the circuit. If it happens during a probe, the probe slot is released. |
-| **Store** | Where the snapshot is saved. The snapshot is the state, the failure timestamps, and the probe counters. |
-| **Name** | The circuit's identity, for example `billing-sdk`. Optional `app` and `operation` split one dependency into separate circuits. The storage key looks like `fuse:punt:billing:charge`. |
+| Term                  | Meaning                                                                                                                                                                                                                           |
+|-----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Circuit**           | One protected dependency, such as a billing API. Circuits are independent.                                                                                                                                                        |
+| **Closed**            | The normal state. Calls run. Counted failures are remembered until they age out of the window, or until a success clears them.                                                                                                    |
+| **Open**              | The dependency is treated as down. Calls are rejected for the open duration.                                                                                                                                                      |
+| **Half-open**         | The cooldown has ended. A limited number of trial calls (probes) are allowed through.                                                                                                                                             |
+| **Probe**             | One trial call while half-open. `half_open_probes` is both how many probes may be in flight and how many successes are required before the circuit closes. One counted failure re-opens the circuit immediately.                  |
+| **Failure threshold** | How many counted failures inside the window open the circuit.                                                                                                                                                                     |
+| **Failure window**    | How far back those failures are counted. A failure older than the window no longer counts.                                                                                                                                        |
+| **Open duration**     | How long an open circuit rejects calls before the next one may probe.                                                                                                                                                             |
+| **Counted failure**   | A timeout, a connection error, or an HTTP status in `counted_http_statuses`. On Saloon, 502, 503, and 504 count by default. A plain `RuntimeException` counts only when its message looks like a timeout or a connection failure. |
+| **Ignored error**     | Anything else, such as a validation error or a 404. It is rethrown and does not open the circuit. If it happens during a probe, the probe slot is released.                                                                       |
+| **Store**             | Where the snapshot is saved. The snapshot is the state, the failure timestamps, and the probe counters.                                                                                                                           |
+| **Name**              | The circuit's identity, for example `billing-sdk`. Optional `app` and `operation` split one dependency into separate circuits. The storage key looks like `fuse:punt:billing:charge`.                                             |
 
 Pass `isFailure` or `isSuccess` to `run()` when the defaults are wrong for a call. `isFailure` receives the thrown exception and returns whether it counts. `isSuccess` receives the return value and returns whether it counts as success. A `false` result is a counted failure.
 
@@ -94,7 +94,7 @@ $result = $fuse->run(
 
 `ArrayStore` keeps the snapshot in a private array on the object. Use it when every call happens in the same process: a test, a local experiment, or a CLI command that makes several requests before it exits. Calls that share that instance see the same circuit.
 
-**Do not use `ArrayStore` in a production web application.** PHP builds a new application for each request and discards it when the response is sent. The next request gets an empty store, so an open circuit is forgotten and traffic keeps hitting a failing dependency. Two separate `new ArrayStore()` instances do not share state either.
+> **Do not use `ArrayStore` in a production web application.** PHP builds a new application for each request and discards it when the response is sent. The next request gets an empty store, so an open circuit is forgotten and traffic keeps hitting a failing dependency. Two separate `new ArrayStore()` instances do not share state either.
 
 ### Laravel cache
 
@@ -213,17 +213,17 @@ If package discovery is disabled, register `Milon\Fuse\Laravel\FuseServiceProvid
 
 The default configuration is lenient: a brief blip does not open the circuit, and a single server error does not count unless you opt in.
 
-| Setting | Default | What it does |
-| --- | --- | --- |
-| Failure threshold | 8 | Counted failures inside the window that open the circuit |
-| Failure window | 60s | How long a failure stays in that count |
-| Open duration | 30s | How long calls are rejected after opening |
-| Half-open probes | 2 | Trial calls allowed in flight, and successes required to close |
-| Counted HTTP statuses | 502, 503, 504 | Saloon responses that count as failures |
-| Count timeouts | true | Exceptions whose class or message looks like a timeout |
-| Count connection errors | true | Exceptions that look like a refused connection, DNS failure, or TLS error |
-| Count HTTP 500 | false | When true, a 500 is added to the counted statuses |
-| Key prefix | `fuse` | First segment of every storage key |
+| Setting                 | Default       | What it does                                                              |
+|-------------------------|---------------|---------------------------------------------------------------------------|
+| Failure threshold       | 8             | Counted failures inside the window that open the circuit                  |
+| Failure window          | 60s           | How long a failure stays in that count                                    |
+| Open duration           | 30s           | How long calls are rejected after opening                                 |
+| Half-open probes        | 2             | Trial calls allowed in flight, and successes required to close            |
+| Counted HTTP statuses   | 502, 503, 504 | Saloon responses that count as failures                                   |
+| Count timeouts          | true          | Exceptions whose class or message looks like a timeout                    |
+| Count connection errors | true          | Exceptions that look like a refused connection, DNS failure, or TLS error |
+| Count HTTP 500          | false         | When true, a 500 is added to the counted statuses                         |
+| Key prefix              | `fuse`        | First segment of every storage key                                        |
 
 ## Development
 
