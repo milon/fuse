@@ -1,0 +1,10 @@
+parameters:
+  level: 6
+  paths:
+    - src
+  ignoreErrors:
+    -
+      identifier: missingType.iterableValue
+    -
+      identifier: trait.unused
+      path: src/Saloon/Traits/HasCircuitBreaker.php

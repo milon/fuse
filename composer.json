@@ -1,0 +1,42 @@
+{
+    "name": "milon/fuse",
+    "description": "HTTP-client-agnostic circuit breaker with an optional Saloon adapter",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Milon",
+            "email": "milon@punt.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "illuminate/cache": "^11.0|^12.0",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.0|^12.0",
+        "saloonphp/saloon": "^3.0|^4.0"
+    },
+    "suggest": {
+        "illuminate/cache": "Required to use the LaravelCacheStore",
+        "psr/simple-cache": "Required to use the Psr16Store",
+        "saloonphp/saloon": "Required to use the Saloon HasCircuitBreaker adapter"
+    },
+    "autoload": {
+        "psr-4": {
+            "Milon\\Fuse\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Milon\\Fuse\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "phpstan": "phpstan analyse --memory-limit=512M"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
