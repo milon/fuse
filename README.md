@@ -8,6 +8,8 @@ HTTP-client-agnostic **circuit breaker** for PHP 8.2+. When a dependency starts 
 
 Laravel and [Saloon](https://docs.saloon.dev/) are optional. The breaker itself only needs PHP.
 
+Full docs: [fuse.milon.im](https://fuse.milon.im/)
+
 ## How a call moves through the breaker
 
 Every call asks the breaker whether it may run. The answer depends on the circuit's state. A **counted failure** is a timeout, a connection error, or a configured HTTP status. Anything else is ignored: the original error is still thrown, but it does not move the circuit.

@@ -1,0 +1,69 @@
+name: docs-site
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: dom, mbstring, zip, zlib
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Mermaid CLI
+        run: npm install -g @mermaid-js/mermaid-cli
+
+      - name: Download Papyrus PHAR
+        env:
+          PAPYRUS_VERSION: "1.5.0"
+        run: |
+          curl -fsSL -o papyrus.phar \
+            "https://github.com/milon/papyrus/releases/download/v${PAPYRUS_VERSION}/papyrus.phar"
+          chmod +x papyrus.phar
+          php papyrus.phar --version
+
+      - name: Build documentation site
+        env:
+          PAPYRUS_BIN: php ${{ github.workspace }}/papyrus.phar
+        run: docs-src/bin/build-site
+
+      - name: Locate site output
+        id: site
+        run: echo "dir=$(ls -d docs/*-site | head -n 1)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.site.outputs.dir }}
+
+  deploy:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

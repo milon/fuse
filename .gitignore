@@ -6,3 +6,7 @@
 /.vscode/
 *.swp
 .DS_Store
+# Papyrus docs site
+docs/*-site/
+docs-src/.papyrus/
+papyrus.phar

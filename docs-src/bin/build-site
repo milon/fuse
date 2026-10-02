@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+DOCS_SRC="$ROOT/docs-src"
+PAPYRUS_BIN="${PAPYRUS_BIN:-}"
+
+run_papyrus() {
+  # shellcheck disable=SC2086
+  eval "$PAPYRUS_BIN" "$@"
+}
+
+if [[ -z "$PAPYRUS_BIN" ]]; then
+  if [[ -x "$ROOT/papyrus.phar" ]]; then
+    PAPYRUS_BIN="php $ROOT/papyrus.phar"
+  elif [[ -x "$ROOT/vendor/bin/papyrus" ]]; then
+    PAPYRUS_BIN="$ROOT/vendor/bin/papyrus"
+  elif command -v papyrus >/dev/null 2>&1; then
+    PAPYRUS_BIN="$(command -v papyrus)"
+  elif [[ -x "$ROOT/../papyrus/bin/papyrus" ]]; then
+    PAPYRUS_BIN="$ROOT/../papyrus/bin/papyrus"
+  elif [[ -x "$ROOT/../barcode/papyrus.phar" ]]; then
+    PAPYRUS_BIN="php $ROOT/../barcode/papyrus.phar"
+  else
+    echo "papyrus CLI not found. Set PAPYRUS_BIN, or download papyrus.phar (^1.5)." >&2
+    exit 1
+  fi
+fi
+
+mkdir -p "$DOCS_SRC/assets"
+if [[ -f "$ROOT/art/banner.svg" ]]; then
+  cp "$ROOT/art/banner.svg" "$DOCS_SRC/assets/banner.svg"
+fi
+
+cd "$ROOT"
+run_papyrus doctor -d docs-src
+run_papyrus build:site -d docs-src -e docs
+
+SITE="$(ls -d "$ROOT"/docs/*-site 2>/dev/null | head -n 1 || true)"
+echo "Built: ${SITE:-unknown}"
