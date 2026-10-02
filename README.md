@@ -13,37 +13,27 @@ Laravel and [Saloon](https://docs.saloon.dev/) are optional. The breaker itself 
 Every call asks the breaker whether it may run. The answer depends on the circuit's state. A **counted failure** is a timeout, a connection error, or a configured HTTP status. Anything else is ignored: the original error is still thrown, but it does not move the circuit.
 
 ```mermaid
-flowchart TD
-    start[Incoming call] --> state{Current state}
-    state -->|Closed| run[Run the call]
-    state -->|Open, cooldown remaining| reject[Throw CircuitOpenException and skip the call]
-    state -->|Open, cooldown elapsed| reserve[Reserve a half-open probe]
-    state -->|Half-open, a probe slot is free| reserve
-    state -->|Half-open, probe slots are full| reject
-    reserve --> run
-    run --> outcome{Outcome}
-    outcome -->|Counted failure while closed| tally{Threshold reached inside the window?}
-    tally -->|Yes| opened[Open the circuit]
-    tally -->|No| stay[Stay closed and remember the failure]
-    outcome -->|Counted failure while half-open| opened
-    outcome -->|Success while closed| cleared[Close and clear recorded failures]
-    outcome -->|Success while half-open, more probes needed| probing[Stay half-open]
-    outcome -->|Success while half-open, probes satisfied| cleared
-    outcome -->|Error that is not counted| ignored[Release the probe and rethrow the error]
+stateDiagram-v2
+    direction LR
+    [*] --> Closed
+    Closed --> Open: threshold hit
+    Open --> HalfOpen: cooldown over
+    HalfOpen --> Closed: probes pass
+    HalfOpen --> Open: probe fails
 ```
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Closed
-    Closed --> Closed: counted failure below the threshold
-    Closed --> Open: threshold reached inside the failure window
-    Closed --> Closed: success clears recorded failures
-    Open --> Open: call rejected
-    Open --> HalfOpen: open duration has elapsed
-    HalfOpen --> HalfOpen: probe succeeds, more probes required
-    HalfOpen --> Closed: successful probes reach the limit
-    HalfOpen --> Open: a probe fails
+flowchart TD
+    call[Call] --> allowed{Allowed?}
+    allowed -->|no| reject[Throw CircuitOpenException]
+    allowed -->|yes| run[Run the callable]
+    run --> result{Result}
+    result -->|success| success[Record success]
+    result -->|counted failure| failure[Record failure]
+    result -->|other error| ignored[Rethrow, state unchanged]
 ```
+
+A call is **allowed** when the circuit is closed, or when it is half-open and a probe slot is free. The first call after the cooldown also turns an open circuit half-open. While closed, a success clears recorded failures, and a counted failure below the threshold is remembered. While half-open, the circuit closes after enough successful probes, and one counted failure re-opens it. An ignored error releases a reserved probe slot without changing the state.
 
 While the circuit is **open**, `run()` throws `Milon\Fuse\CircuitOpenException` and does not invoke your callable. That is the point: a down dependency is not called again until the cooldown ends.
 
