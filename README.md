@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="art/banner.svg" alt="milon/fuse — HTTP-client-agnostic circuit breaker for PHP" width="100%">
+</p>
+
 # milon/fuse
 
 HTTP-client-agnostic **circuit breaker** for PHP 8.2+, with an optional [Saloon](https://docs.saloon.dev/) adapter.
@@ -71,7 +75,7 @@ class ExampleConnector extends Connector
 
 ## Defaults
 
-Aligned with social-api ADR-002 (lenient):
+The default configuration is intentionally lenient:
 
 | Setting | Default |
 |---------|---------|
