@@ -17,6 +17,7 @@ use Milon\Fuse\Laravel\FuseServiceProvider;
 use Milon\Fuse\Stores\LaravelCacheStore;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class FuseServiceProviderTest extends TestCase
 {
@@ -31,7 +32,11 @@ final class FuseServiceProviderTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset(ServiceProvider::$publishes[FuseServiceProvider::class], ServiceProvider::$publishGroups['fuse-config']);
+        unset(
+            ServiceProvider::$publishes[FuseServiceProvider::class],
+            ServiceProvider::$publishGroups['fuse-config'],
+            ServiceProvider::$publishGroups['fuse-migrations'],
+        );
 
         parent::tearDown();
     }
@@ -119,6 +124,34 @@ final class FuseServiceProviderTest extends TestCase
         $this->assertSame($defaults->countHttp500, $fromFile->countHttp500);
         $this->assertSame($defaults->keyPrefix, $fromFile->keyPrefix);
         $this->assertArrayHasKey('breakers', $config);
+        $this->assertSame('cache', $config['store']);
+        $this->assertSame('fuse_circuits', $config['database']['table'] ?? null);
+    }
+
+    #[Test]
+    public function it_publishes_the_migration_in_console(): void
+    {
+        $this->app->console = true;
+
+        (new FuseServiceProvider($this->app))->boot();
+
+        $published = FuseServiceProvider::pathsToPublish(FuseServiceProvider::class, 'fuse-migrations');
+
+        $this->assertSame(
+            [dirname(__DIR__, 2).'/database/migrations' => '/app/database/migrations'],
+            $published,
+        );
+    }
+
+    #[Test]
+    public function the_database_store_requires_a_database_manager(): void
+    {
+        (new FuseServiceProvider($this->app))->register();
+        $this->app->config->set('fuse.store', 'database');
+        $this->app->instance('db', new \stdClass);
+
+        $this->expectException(RuntimeException::class);
+        $this->app->make(CircuitBreakerStore::class);
     }
 }
 
@@ -172,6 +205,16 @@ final class FuseApplication
     public function configPath(string $path = ''): string
     {
         return '/app/config/'.ltrim($path, '/');
+    }
+
+    public function databasePath(string $path = ''): string
+    {
+        return '/app/database/'.ltrim($path, '/');
+    }
+
+    public function instance(string $abstract, mixed $instance): void
+    {
+        $this->instances[$abstract] = $instance;
     }
 }
 

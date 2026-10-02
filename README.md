@@ -38,13 +38,48 @@ $result = $fuse->run(
 
 When the circuit is open, `run()` throws `Milon\Fuse\CircuitOpenException` and does **not** invoke `execute`.
 
+`ArrayStore` in that example is for tests and single-process scripts. A production web app should use a shared store, described below.
+
+## Stores
+
+The breaker reads and writes one snapshot per circuit. The store decides where that snapshot lives.
+
+### ArrayStore
+
+`ArrayStore` keeps the snapshot in a private array on the object. Use it when every call happens in the same process: a test, a local experiment, or a CLI command that makes several requests before it exits. Calls that share that instance see the same circuit.
+
+**Do not use `ArrayStore` in a production web application.** PHP builds a new application for each request and throws it away when the response is sent. The next request gets a new empty store, so an open circuit is forgotten and traffic keeps hitting a failing dependency. Two `new ArrayStore()` instances do not share state either.
+
+### Laravel cache
+
+`LaravelCacheStore` writes the snapshot through Laravel's cache. This is the default when the service provider is registered. Every server that uses the same cache sees the same circuit, including on the next request.
+
+### Database
+
+`DatabaseStore` writes the snapshot to a `fuse_circuits` table. Use it when you want state to survive requests without depending on a cache. Publish the migration, run it, and select the database store:
+
+```bash
+php artisan vendor:publish --tag=fuse-migrations
+php artisan migrate
+```
+
+```dotenv
+FUSE_STORE=database
+```
+
+`FUSE_DB_CONNECTION` selects a connection. Leave it empty to use the default. The `database.table` config value must match the table created by the migration.
+
+### PSR-16
+
+`Psr16Store` wraps any PSR-16 cache. Install `psr/simple-cache` to use it.
+
 ## Saloon usage
 
 ```php
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
 use Milon\Fuse\CircuitBreakerConfig;
 use Milon\Fuse\Contracts\CircuitBreakerStore;
-use Milon\Fuse\Stores\ArrayStore; // or LaravelCacheStore
+use Milon\Fuse\Stores\ArrayStore; // tests only; production should use a shared store
 use Saloon\Http\Connector;
 
 class ExampleConnector extends Connector
@@ -91,7 +126,7 @@ $result = $fuse->run(
 );
 ```
 
-Set `cache_store` to pin Fuse to a cache store. Add a `breakers` entry to override the defaults for one circuit name.
+The provider uses the cache unless `FUSE_STORE=database`. Set `cache_store` to pin the cache driver. Add a `breakers` entry to override the defaults for one circuit name. The database store needs the migration from the Stores section.
 
 A Saloon connector can take the same store and config from the container:
 

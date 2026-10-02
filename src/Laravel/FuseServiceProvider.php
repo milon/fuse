@@ -6,8 +6,10 @@ namespace Milon\Fuse\Laravel;
 
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Support\ServiceProvider;
 use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\Stores\DatabaseStore;
 use Milon\Fuse\Stores\LaravelCacheStore;
 use RuntimeException;
 
@@ -28,10 +30,29 @@ class FuseServiceProvider extends ServiceProvider
             $this->publishes([
                 $this->packageConfigPath() => $this->app->configPath('fuse.php'),
             ], 'fuse-config');
+
+            $this->publishesMigrations([
+                dirname(__DIR__, 2).'/database/migrations' => $this->app->databasePath('migrations'),
+            ], 'fuse-migrations');
         }
     }
 
     private function makeStore(): CircuitBreakerStore
+    {
+        $driver = $this->settings()['store'] ?? 'cache';
+
+        if (! is_string($driver) || $driver === '' || $driver === 'cache') {
+            return $this->makeCacheStore();
+        }
+
+        if ($driver === 'database') {
+            return $this->makeDatabaseStore();
+        }
+
+        throw new RuntimeException("Fuse store [{$driver}] is not supported.");
+    }
+
+    private function makeCacheStore(): LaravelCacheStore
     {
         $storeName = $this->settings()['cache_store'] ?? null;
 
@@ -46,6 +67,28 @@ class FuseServiceProvider extends ServiceProvider
             : $cache->store();
 
         return new LaravelCacheStore($repository);
+    }
+
+    private function makeDatabaseStore(): DatabaseStore
+    {
+        $database = $this->settings()['database'] ?? [];
+        $connectionName = is_array($database) ? ($database['connection'] ?? null) : null;
+        $table = is_array($database) ? ($database['table'] ?? 'fuse_circuits') : 'fuse_circuits';
+
+        $db = $this->app->make('db');
+
+        if (! $db instanceof ConnectionResolverInterface) {
+            throw new RuntimeException('Fuse requires a Laravel database manager to use the database store.');
+        }
+
+        $connection = is_string($connectionName) && $connectionName !== ''
+            ? $db->connection($connectionName)
+            : $db->connection();
+
+        return new DatabaseStore(
+            $connection,
+            is_string($table) && $table !== '' ? $table : 'fuse_circuits',
+        );
     }
 
     private function makeManager(): FuseManager

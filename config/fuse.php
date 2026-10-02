@@ -4,15 +4,41 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Store
+    |--------------------------------------------------------------------------
+    |
+    | "cache" shares circuit state through Laravel's cache. "database" stores
+    | it in the fuse_circuits table. Publish and run the migration first.
+    |
+    */
+
+    'store' => env('FUSE_STORE', 'cache'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Cache store
     |--------------------------------------------------------------------------
     |
-    | Circuit state is shared through Laravel's cache. Null uses the default
-    | cache store. Set a store name to pin Fuse to a specific one.
+    | Used when the store above is "cache". Null uses the default cache store.
     |
     */
 
     'cache_store' => env('FUSE_CACHE_STORE'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Database store
+    |--------------------------------------------------------------------------
+    |
+    | Used when the store above is "database". Null uses the default connection.
+    | The table name must match the published migration.
+    |
+    */
+
+    'database' => [
+        'connection' => env('FUSE_DB_CONNECTION'),
+        'table' => 'fuse_circuits',
+    ],
 
     /*
     |--------------------------------------------------------------------------
