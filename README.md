@@ -15,7 +15,7 @@ HTTP-client-agnostic **circuit breaker** for PHP 8.2+. When a dependency starts 
 
 Laravel and [Saloon](https://docs.saloon.dev/) are optional. The breaker itself only needs PHP.
 
-Full docs: [fuse.milon.im](https://fuse.milon.im/)
+Full docs: [oss.milon.im/fuse](https://oss.milon.im/fuse/)
 
 ## How a call moves through the breaker
 

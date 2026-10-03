@@ -2,6 +2,8 @@
 
 The site is built with [Papyrus](https://github.com/milon/papyrus) 1.5 from the Markdown in `content/`.
 
+Live URL: [oss.milon.im/fuse](https://oss.milon.im/fuse/) (deployed from [milon/oss](https://github.com/milon/oss)).
+
 ## Build
 
 From the repository root:
@@ -21,9 +23,10 @@ Mermaid diagrams need the Mermaid CLI (`mmdc`) on `PATH`.
 ## Preview
 
 ```shell
-php papyrus.phar serve -d docs-src
+php papyrus.phar serve -d docs-src -e docs
+# open http://127.0.0.1:8000/fuse/
 ```
 
-## Pages
+## CI
 
-GitHub Actions builds the site on every push and pull request. Pushes to `master` deploy to GitHub Pages. The custom domain in `papyrus.yml` is `fuse.milon.im`.
+GitHub Actions builds the site on docs changes (verify only). Production deploy is the `milon/oss` aggregator.

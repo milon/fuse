@@ -17,11 +17,11 @@
             "email": "milon@punt.com"
         }
     ],
-    "homepage": "https://fuse.milon.im",
+    "homepage": "https://oss.milon.im/fuse",
     "support": {
         "issues": "https://github.com/milon/fuse/issues",
         "source": "https://github.com/milon/fuse",
-        "docs": "https://fuse.milon.im"
+        "docs": "https://oss.milon.im/fuse"
     },
     "require": {
         "php": "^8.2"

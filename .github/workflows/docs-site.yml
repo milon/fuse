@@ -1,17 +1,27 @@
 name: docs-site
 
+# Builds docs to verify Papyrus config. Live site is deployed from milon/oss
+# to https://oss.milon.im/fuse/
+
 on:
   push:
     branches: [main, master]
+    paths:
+      - "docs-src/**"
+      - "art/**"
+      - ".github/workflows/docs-site.yml"
   pull_request:
+    paths:
+      - "docs-src/**"
+      - "art/**"
+      - ".github/workflows/docs-site.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: docs-site-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -46,24 +56,8 @@ jobs:
       - name: Build documentation site
         env:
           PAPYRUS_BIN: php ${{ github.workspace }}/papyrus.phar
-        run: docs-src/bin/build-site
-
-      - name: Locate site output
-        id: site
-        run: echo "dir=$(ls -d docs/*-site | head -n 1)" >> "$GITHUB_OUTPUT"
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ${{ steps.site.outputs.dir }}
-
-  deploy:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+        run: |
+          docs-src/bin/build-site
+          test -f docs/milon-fuse-site/index.html
+          grep -q 'base href="/fuse/"' docs/milon-fuse-site/index.html
+          grep -q 'oss.milon.im' docs/milon-fuse-site/CNAME

@@ -21,7 +21,8 @@ toc:
 site:
   banner: banner.svg
   lead: 'Stop calling a failing dependency, then let a few trial calls through when it might have recovered.'
-  cname: fuse.milon.im
+  cname: oss.milon.im
+  base_path: /fuse
   version: latest
   repository: 'https://github.com/milon/fuse'
   edit:
