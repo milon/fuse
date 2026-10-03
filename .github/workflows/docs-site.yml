@@ -1,27 +1,21 @@
 name: docs-site
 
-# Builds docs to verify Papyrus config. Live site is deployed from milon/oss
-# to https://oss.milon.im/fuse/
+# Deploys to https://milon.github.io/fuse/
+# Public URL: https://oss.milon.im/fuse/ (Cloudflare Worker in milon/oss)
 
 on:
   push:
     branches: [main, master]
-    paths:
-      - "docs-src/**"
-      - "art/**"
-      - ".github/workflows/docs-site.yml"
   pull_request:
-    paths:
-      - "docs-src/**"
-      - "art/**"
-      - ".github/workflows/docs-site.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: docs-site-${{ github.ref }}
+  group: pages
   cancel-in-progress: true
 
 jobs:
@@ -60,4 +54,21 @@ jobs:
           docs-src/bin/build-site
           test -f docs/milon-fuse-site/index.html
           grep -q 'base href="/fuse/"' docs/milon-fuse-site/index.html
-          grep -q 'oss.milon.im' docs/milon-fuse-site/CNAME
+          # cname in papyrus.yml is for absolute sitemap URLs only; do not claim the domain.
+          rm -f docs/milon-fuse-site/CNAME
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/milon-fuse-site
+
+  deploy:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
