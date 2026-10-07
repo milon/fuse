@@ -12,6 +12,8 @@ use Milon\Fuse\CircuitBreaker;
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
 use Milon\Fuse\Saloon\Traits\HasCircuitBreakerOperation;
 use Milon\Fuse\Stores\ArrayStore;
+use Milon\Fuse\Testing\FuseMockClient;
+use Milon\Fuse\Testing\InteractsWithFuse;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Saloon\Enums\Method;
@@ -22,6 +24,8 @@ use Saloon\Http\Request;
 
 final class SaloonIntegrationTest extends TestCase
 {
+    use InteractsWithFuse;
+
     #[Test]
     public function saloon_connector_trips_and_rejects_when_open(): void
     {
@@ -53,12 +57,10 @@ final class SaloonIntegrationTest extends TestCase
             }
         };
 
-        $mockClient = new MockClient([
+        FuseMockClient::mock($connector, [
             MockResponse::make(body: 'down', status: 503),
             MockResponse::make(body: 'down', status: 503),
-            MockResponse::make(body: 'ok', status: 200),
         ]);
-        $connector->withMockClient($mockClient);
 
         $request = new class extends Request
         {
@@ -78,7 +80,7 @@ final class SaloonIntegrationTest extends TestCase
             store: $store,
             config: new CircuitBreakerConfig(failureThreshold: 2),
         );
-        $this->assertSame(CircuitState::Open, $breaker->state());
+        $this->assertCircuitOpen($breaker);
 
         $this->expectException(CircuitOpenException::class);
         $connector->send($request);

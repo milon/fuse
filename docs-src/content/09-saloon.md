@@ -114,3 +114,32 @@ A thrown connect timeout records a failure through the fatal middleware and then
 ## Tests and mocks
 
 Saloon runs its mock middleware before Fuse's request middleware. If you mock a sequence of responses and the last send is the one that should be rejected, leave a spare `MockResponse` on the connector. Otherwise Saloon throws `NoMockResponseFoundException` before Fuse can throw `CircuitOpenException`.
+
+`FuseMockClient::mock()` pads that spare for you:
+
+```php
+use Milon\Fuse\Testing\FuseMockClient;
+use Milon\Fuse\Testing\InteractsWithFuse;
+use Saloon\Http\Faking\MockResponse;
+
+final class BillingConnectorTest extends TestCase
+{
+    use InteractsWithFuse;
+
+    public function test_open_circuit_rejects(): void
+    {
+        FuseMockClient::mock($connector, [
+            MockResponse::make(status: 503), // trips the breaker
+            // spare for the rejected send is added automatically
+        ]);
+
+        $connector->send(new ChargeRequest);
+        $this->assertCircuitOpenFor(app(FuseManager::class), 'billing');
+
+        $this->expectException(CircuitOpenException::class);
+        $connector->send(new ChargeRequest);
+    }
+}
+```
+
+`InteractsWithFuse` also gives `forceCircuitOpen`, `resetCircuit`, and `assertCircuitClosed` (plus `*For` variants that take a `FuseManager`).

@@ -11,3 +11,6 @@ parameters:
     -
       identifier: trait.unused
       path: src/Saloon/Traits/HasCircuitBreakerOperation.php
+    -
+      identifier: trait.unused
+      path: src/Testing/InteractsWithFuse.php

@@ -59,7 +59,7 @@ FUSE_CACHE_STORE=redis
 
 ## Saloon threw NoMockResponseFoundException instead of CircuitOpenException
 
-Saloon's mock middleware runs before Fuse. The open circuit never got to reject the call because the mock sequence was already empty. Leave one spare `MockResponse` on the connector for the send that should be rejected.
+Saloon's mock middleware runs before Fuse. The open circuit never got to reject the call because the mock sequence was already empty. Use `Milon\Fuse\Testing\FuseMockClient::mock()` (it pads a spare response), or leave one spare `MockResponse` yourself.
 
 ## Does the package load Laravel when I am not using Laravel?
 

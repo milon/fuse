@@ -8,11 +8,12 @@ use Illuminate\Cache\ArrayStore as CacheArrayStore;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Container\Container;
 use Milon\Fuse\CircuitOpenException;
-use Milon\Fuse\CircuitState;
 use Milon\Fuse\Laravel\FuseManager;
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
 use Milon\Fuse\Saloon\Traits\HasCircuitBreakerOperation;
 use Milon\Fuse\Stores\LaravelCacheStore;
+use Milon\Fuse\Testing\FuseMockClient;
+use Milon\Fuse\Testing\InteractsWithFuse;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Saloon\Enums\Method;
@@ -23,6 +24,8 @@ use Saloon\Http\Request;
 
 final class LaravelSaloonIntegrationTest extends TestCase
 {
+    use InteractsWithFuse;
+
     private Container $container;
 
     protected function setUp(): void
@@ -69,10 +72,9 @@ final class LaravelSaloonIntegrationTest extends TestCase
             }
         };
 
-        $connector->withMockClient(new MockClient([
+        FuseMockClient::mock($connector, [
             MockResponse::make(body: 'down', status: 503),
-            MockResponse::make(body: 'ok', status: 200),
-        ]));
+        ]);
 
         $request = new class extends Request
         {
@@ -93,10 +95,8 @@ final class LaravelSaloonIntegrationTest extends TestCase
 
         $connector->send($request);
 
-        $breaker = $manager->for('billing', operation: 'charge')->breaker();
-
-        $this->assertSame(CircuitState::Open, $breaker->state());
-        $this->assertSame('fuse:billing:charge', $breaker->storageKey());
+        $this->assertCircuitOpenFor($manager, 'billing', operation: 'charge');
+        $this->assertSame('fuse:billing:charge', $manager->for('billing', operation: 'charge')->breaker()->storageKey());
 
         $this->expectException(CircuitOpenException::class);
         $connector->send($request);

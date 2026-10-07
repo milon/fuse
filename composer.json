@@ -42,8 +42,9 @@
         "illuminate/console": "Required to use the fuse:status and fuse:reset Artisan commands",
         "illuminate/database": "Required to use the database circuit store and its migration",
         "illuminate/support": "Required to register the optional Laravel service provider",
+        "phpunit/phpunit": "Required to use FuseAssertions and InteractsWithFuse",
         "psr/simple-cache": "Required to use the Psr16Store",
-        "saloonphp/saloon": "Required to use the Saloon HasCircuitBreaker adapter"
+        "saloonphp/saloon": "Required to use the Saloon HasCircuitBreaker adapter and FuseMockClient"
     },
     "autoload": {
         "psr-4": {

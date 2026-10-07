@@ -211,6 +211,18 @@ The default configuration is lenient: a brief blip does not open the circuit, an
 | Count HTTP 500          | false         | When true, a 500 is added to the counted statuses                         |
 | Key prefix              | `fuse`        | First segment of every storage key                                        |
 
+## Testing helpers
+
+```php
+use Milon\Fuse\Testing\FuseMockClient;
+use Milon\Fuse\Testing\InteractsWithFuse;
+
+FuseMockClient::mock($connector, [MockResponse::make(status: 503)]);
+$this->assertCircuitOpen($fuse);
+```
+
+`FuseMockClient` pads a spare Saloon mock so an open-circuit reject is not masked by `NoMockResponseFoundException`. `InteractsWithFuse` adds PHPUnit assertions and `forceCircuitOpen` / `resetCircuit` helpers.
+
 ## Development
 
 ```bash
