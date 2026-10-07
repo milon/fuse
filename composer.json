@@ -34,6 +34,7 @@
         "illuminate/support": "^11.0|^12.0|^13.0",
         "phpstan/phpstan": "^2.0",
         "phpunit/phpunit": "^11.0|^12.0",
+        "psr/event-dispatcher": "^1.0",
         "saloonphp/saloon": "^3.0|^4.0",
         "vlucas/phpdotenv": "^5.6"
     },
@@ -43,6 +44,7 @@
         "illuminate/database": "Required to use the database circuit store and its migration",
         "illuminate/support": "Required to register the optional Laravel service provider",
         "phpunit/phpunit": "Required to use FuseAssertions and InteractsWithFuse",
+        "psr/event-dispatcher": "Required to use Psr14CircuitEventDispatcher",
         "psr/simple-cache": "Required to use the Psr16Store",
         "saloonphp/saloon": "Required to use the Saloon HasCircuitBreaker adapter and FuseMockClient"
     },

@@ -7,7 +7,7 @@ namespace Milon\Fuse\Testing;
 use Milon\Fuse\CircuitBreaker;
 use Milon\Fuse\CircuitState;
 use Milon\Fuse\Fuse;
-use Milon\Fuse\Laravel\FuseManager;
+use Milon\Fuse\FuseFactory;
 use PHPUnit\Framework\Assert;
 
 final class FuseAssertions
@@ -37,21 +37,21 @@ final class FuseAssertions
     }
 
     public static function assertOpenFor(
-        FuseManager $manager,
+        FuseFactory $factory,
         string $name,
         ?string $operation = null,
         ?string $app = null,
     ): void {
-        self::assertOpen($manager->for($name, operation: $operation, app: $app));
+        self::assertOpen($factory->for($name, operation: $operation, app: $app));
     }
 
     public static function assertClosedFor(
-        FuseManager $manager,
+        FuseFactory $factory,
         string $name,
         ?string $operation = null,
         ?string $app = null,
     ): void {
-        self::assertClosed($manager->for($name, operation: $operation, app: $app));
+        self::assertClosed($factory->for($name, operation: $operation, app: $app));
     }
 
     public static function forceOpen(CircuitBreaker|Fuse $target): void
@@ -70,21 +70,21 @@ final class FuseAssertions
     }
 
     public static function forceOpenFor(
-        FuseManager $manager,
+        FuseFactory $factory,
         string $name,
         ?string $operation = null,
         ?string $app = null,
     ): void {
-        self::forceOpen($manager->for($name, operation: $operation, app: $app));
+        self::forceOpen($factory->for($name, operation: $operation, app: $app));
     }
 
     public static function resetFor(
-        FuseManager $manager,
+        FuseFactory $factory,
         string $name,
         ?string $operation = null,
         ?string $app = null,
     ): void {
-        self::reset($manager->for($name, operation: $operation, app: $app));
+        self::reset($factory->for($name, operation: $operation, app: $app));
     }
 
     private static function breaker(CircuitBreaker|Fuse $target): CircuitBreaker

@@ -38,7 +38,7 @@ Yes. Pass `operation: 'charge'` and `operation: 'refund'`, or add the `HasCircui
 
 ## Can I listen when a circuit opens?
 
-Yes. In Laravel, listen for `Milon\Fuse\Events\CircuitOpened` (also `CircuitClosed` and `CircuitHalfOpened`). See [Laravel](07-laravel.html). Outside Laravel, pass a `CircuitEventDispatcher` to `Fuse::for()`.
+Yes. In Laravel, listen for `Milon\Fuse\Events\CircuitOpened` (also `CircuitClosed` and `CircuitHalfOpened`). See [Laravel](07-laravel.html). Outside Laravel, attach `CallableCircuitEventDispatcher` or `Psr14CircuitEventDispatcher` to a `FuseFactory` (or pass `events:` into `Fuse::for()`).
 
 ## What is the difference between forceClosed and reset?
 

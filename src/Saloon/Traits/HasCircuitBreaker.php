@@ -8,6 +8,7 @@ use Milon\Fuse\CircuitBreaker;
 use Milon\Fuse\CircuitBreakerConfig;
 use Milon\Fuse\Contracts\CircuitBreakerStore;
 use Milon\Fuse\Contracts\CircuitEventDispatcher;
+use Milon\Fuse\FuseFactory;
 use Milon\Fuse\Laravel\FuseManager;
 use Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation;
 use Milon\Fuse\Saloon\Middleware\CircuitBreakerMiddleware;
@@ -77,10 +78,10 @@ trait HasCircuitBreaker
 
     protected function resolveCircuitBreakerConfig(): CircuitBreakerConfig
     {
-        $manager = $this->resolveLaravelFuseManager();
+        $factory = $this->resolveFuseFactory();
 
-        if ($manager !== null) {
-            return $manager->configFor($this->resolveCircuitBreakerName());
+        if ($factory !== null) {
+            return $factory->configFor($this->resolveCircuitBreakerName());
         }
 
         return CircuitBreakerConfig::defaults();
@@ -93,30 +94,27 @@ trait HasCircuitBreaker
 
     protected function resolveCircuitBreakerStore(): CircuitBreakerStore
     {
-        $manager = $this->resolveLaravelFuseManager();
+        $factory = $this->resolveFuseFactory();
 
-        if ($manager !== null) {
-            return $manager->store();
+        if ($factory !== null) {
+            return $factory->store();
         }
 
         throw new RuntimeException(
             'No circuit breaker store is available. Override resolveCircuitBreakerStore() on '
             .static::class
-            .' or use Laravel with Milon\\Fuse\\Laravel\\FuseServiceProvider registered.',
+            .', bind Milon\\Fuse\\FuseFactory in the container, or use Laravel with '
+            .'Milon\\Fuse\\Laravel\\FuseServiceProvider registered.',
         );
     }
 
     protected function resolveCircuitEventDispatcher(): ?CircuitEventDispatcher
     {
-        return $this->resolveLaravelFuseManager()?->events();
+        return $this->resolveFuseFactory()?->events();
     }
 
-    protected function resolveLaravelFuseManager(): ?FuseManager
+    protected function resolveFuseFactory(): ?FuseFactory
     {
-        if (! class_exists(FuseManager::class)) {
-            return null;
-        }
-
         $containerClass = 'Illuminate\\Container\\Container';
 
         if (! class_exists($containerClass)) {
@@ -126,12 +124,18 @@ trait HasCircuitBreaker
         /** @var \Illuminate\Container\Container $container */
         $container = $containerClass::getInstance();
 
-        if (! $container->bound(FuseManager::class)) {
-            return null;
+        foreach ([FuseManager::class, FuseFactory::class] as $abstract) {
+            if (! class_exists($abstract) || ! $container->bound($abstract)) {
+                continue;
+            }
+
+            $resolved = $container->make($abstract);
+
+            if ($resolved instanceof FuseFactory) {
+                return $resolved;
+            }
         }
 
-        $manager = $container->make(FuseManager::class);
-
-        return $manager instanceof FuseManager ? $manager : null;
+        return null;
     }
 }

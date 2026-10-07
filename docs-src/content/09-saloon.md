@@ -12,7 +12,7 @@ composer require milon/fuse saloonphp/saloon
 
 ## A connector
 
-Without Laravel you must return a store. The other methods have defaults: the circuit name is derived from the class (`BillingConnector` → `billing`), the config is `CircuitBreakerConfig::defaults()`, and there is no app segment. In Laravel, skip the store method — see [Laravel and Saloon](10-laravel-and-saloon.html).
+Without a container-bound `FuseFactory`, return a store (or bind `FuseFactory` / Laravel's `FuseManager` in Illuminate's container). The other methods have defaults: the circuit name is derived from the class (`BillingConnector` → `billing`), the config is `CircuitBreakerConfig::defaults()`, and there is no app segment. In Laravel, skip the store method — see [Laravel and Saloon](10-laravel-and-saloon.html).
 
 ```php
 use Milon\Fuse\CircuitBreakerConfig;
@@ -142,4 +142,4 @@ final class BillingConnectorTest extends TestCase
 }
 ```
 
-`InteractsWithFuse` also gives `forceCircuitOpen`, `resetCircuit`, and `assertCircuitClosed` (plus `*For` variants that take a `FuseManager`).
+`InteractsWithFuse` also gives `forceCircuitOpen`, `resetCircuit`, and `assertCircuitClosed` (plus `*For` variants that take a `FuseFactory` / `FuseManager`).

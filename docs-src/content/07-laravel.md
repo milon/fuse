@@ -90,7 +90,7 @@ An open circuit stored in Redis is visible to the next PHP request and to every 
 | --- | --- |
 | `Milon\Fuse\Contracts\CircuitBreakerStore` | `LaravelCacheStore` or `DatabaseStore` |
 | `Milon\Fuse\Contracts\CircuitEventDispatcher` | Dispatches into Laravel's event system |
-| `Milon\Fuse\Laravel\FuseManager` | The manager, as a singleton (also the `Fuse` facade root) |
+| `Milon\Fuse\Laravel\FuseManager` | Laravel `FuseFactory` binding (also the `Fuse` facade root) |
 
 Each `Fuse::for()` / `fuse('…')` returns a new fuse bound to the shared store and the config for that name.
 
@@ -118,7 +118,7 @@ Event::listen(CircuitOpened::class, function (CircuitOpened $event): void {
 });
 ```
 
-Saloon connectors that use `HasCircuitBreaker` share the same dispatcher. Outside Laravel, pass a `CircuitEventDispatcher` into `Fuse::for(..., events: $dispatcher)`.
+Saloon connectors that use `HasCircuitBreaker` share the same dispatcher. Outside Laravel, use `CallableCircuitEventDispatcher` or `Psr14CircuitEventDispatcher` on a `FuseFactory` (see [Plain PHP](04-plain-php.html)).
 
 ## Artisan commands
 

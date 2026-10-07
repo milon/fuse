@@ -76,6 +76,41 @@ try {
 
 Build the second `Fuse` from the **same store** if you want it to see the open circuit. A new `ArrayStore` is empty.
 
+## A shared factory (named breakers)
+
+When several circuits share one store and you want per-name config overrides (like Laravel's `config/fuse.php`), use `FuseFactory`:
+
+```php
+use Milon\Fuse\Events\CallableCircuitEventDispatcher;
+use Milon\Fuse\Events\CircuitOpened;
+use Milon\Fuse\FuseFactory;
+use Milon\Fuse\Stores\Psr16Store;
+
+$events = (new CallableCircuitEventDispatcher)
+    ->listenFor(CircuitOpened::class, function (CircuitOpened $event): void {
+        error_log("circuit open: {$event->storageKey}");
+    });
+
+$fuse = new FuseFactory(
+    store: new Psr16Store($cache),
+    settings: [
+        'failure_threshold' => 8,
+        'breakers' => [
+            'billing' => [
+                'failure_threshold' => 3,
+                'open_seconds' => 15,
+            ],
+        ],
+    ],
+    events: $events,
+);
+
+$fuse->for('billing')->run(fn () => $billing->charge($amount));
+$fuse->for('search')->run(fn () => $search->query($q)); // still uses threshold 8
+```
+
+`FuseManager` in Laravel is this same class with a Laravel binding. Saloon connectors resolve a container-bound `FuseFactory` / `FuseManager` for store, config, and events.
+
 ## Separate operations
 
 `charge` and `refund` are different circuits when you pass an operation:

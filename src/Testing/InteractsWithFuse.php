@@ -7,7 +7,7 @@ namespace Milon\Fuse\Testing;
 use Milon\Fuse\CircuitBreaker;
 use Milon\Fuse\CircuitState;
 use Milon\Fuse\Fuse;
-use Milon\Fuse\Laravel\FuseManager;
+use Milon\Fuse\FuseFactory;
 
 /**
  * PHPUnit helpers for asserting and controlling circuit state.
@@ -37,21 +37,21 @@ trait InteractsWithFuse
     }
 
     protected function assertCircuitOpenFor(
-        FuseManager $manager,
+        FuseFactory $factory,
         string $name,
         ?string $operation = null,
         ?string $app = null,
     ): void {
-        FuseAssertions::assertOpenFor($manager, $name, $operation, $app);
+        FuseAssertions::assertOpenFor($factory, $name, $operation, $app);
     }
 
     protected function assertCircuitClosedFor(
-        FuseManager $manager,
+        FuseFactory $factory,
         string $name,
         ?string $operation = null,
         ?string $app = null,
     ): void {
-        FuseAssertions::assertClosedFor($manager, $name, $operation, $app);
+        FuseAssertions::assertClosedFor($factory, $name, $operation, $app);
     }
 
     protected function forceCircuitOpen(CircuitBreaker|Fuse $target): void
@@ -70,20 +70,20 @@ trait InteractsWithFuse
     }
 
     protected function forceCircuitOpenFor(
-        FuseManager $manager,
+        FuseFactory $factory,
         string $name,
         ?string $operation = null,
         ?string $app = null,
     ): void {
-        FuseAssertions::forceOpenFor($manager, $name, $operation, $app);
+        FuseAssertions::forceOpenFor($factory, $name, $operation, $app);
     }
 
     protected function resetCircuitFor(
-        FuseManager $manager,
+        FuseFactory $factory,
         string $name,
         ?string $operation = null,
         ?string $app = null,
     ): void {
-        FuseAssertions::resetFor($manager, $name, $operation, $app);
+        FuseAssertions::resetFor($factory, $name, $operation, $app);
     }
 }

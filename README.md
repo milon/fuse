@@ -97,6 +97,27 @@ $result = $fuse->run(
 
 `ArrayStore` in that example is for tests and single-process scripts. A production web app needs a shared store.
 
+For shared store + named overrides + events without Laravel, use `FuseFactory`:
+
+```php
+use Milon\Fuse\Events\CallableCircuitEventDispatcher;
+use Milon\Fuse\Events\CircuitOpened;
+use Milon\Fuse\FuseFactory;
+
+$factory = new FuseFactory(
+    store: $store,
+    settings: [
+        'breakers' => [
+            'billing-sdk' => ['failure_threshold' => 3],
+        ],
+    ],
+    events: (new CallableCircuitEventDispatcher)
+        ->listenFor(CircuitOpened::class, fn (CircuitOpened $e) => error_log($e->storageKey)),
+);
+
+$factory->for('billing-sdk')->run(fn () => $client->charge($payload));
+```
+
 ## Stores
 
 ### ArrayStore
