@@ -184,6 +184,8 @@ Set `FUSE_STORE=database` to use the database store after the migration has run.
 
 `Fuse::for('billing-sdk')` and `Fuse::configFor('billing-sdk')` pick up that override.
 
+Listen for `Milon\Fuse\Events\CircuitOpened` (and `CircuitClosed` / `CircuitHalfOpened`) when a circuit changes state.
+
 A Saloon connector that uses `HasCircuitBreaker` picks up the same store and named config automatically. The derived name (`BillingConnector` → `billing`) is what `breakers.billing` matches.
 
 If package discovery is disabled, register `Milon\Fuse\Laravel\FuseServiceProvider` yourself.

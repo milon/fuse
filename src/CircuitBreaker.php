@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Milon\Fuse;
 
 use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\Contracts\CircuitEventDispatcher;
+use Milon\Fuse\Events\CircuitClosed;
+use Milon\Fuse\Events\CircuitHalfOpened;
+use Milon\Fuse\Events\CircuitOpened;
 use Milon\Fuse\Support\KeyGenerator;
 
 final class CircuitBreaker
@@ -22,6 +26,7 @@ final class CircuitBreaker
         private readonly ?string $operation = null,
         private readonly ?string $app = null,
         ?Clock $clock = null,
+        private readonly ?CircuitEventDispatcher $events = null,
     ) {
         $this->keys = new KeyGenerator($this->config->keyPrefix, $this->app);
         $this->storageKey = $this->keys->make($this->name, $this->operation);
@@ -63,7 +68,7 @@ final class CircuitBreaker
             $inflight = max(0, $snapshot->halfOpenInflight - 1);
 
             if ($successes >= $this->config->halfOpenProbes) {
-                $this->persist($this->closedState());
+                $this->persist($this->closedState(), 'probes_succeeded');
 
                 return;
             }
@@ -74,12 +79,12 @@ final class CircuitBreaker
                 failures: [],
                 halfOpenSuccesses: $successes,
                 halfOpenInflight: $inflight,
-            ));
+            ), 'probe_succeeded');
 
             return;
         }
 
-        $this->persist($this->closedState());
+        $this->persist($this->closedState(), 'success');
     }
 
     /**
@@ -100,7 +105,7 @@ final class CircuitBreaker
             failures: [],
             halfOpenSuccesses: $snapshot->halfOpenSuccesses,
             halfOpenInflight: max(0, $snapshot->halfOpenInflight - 1),
-        ));
+        ), 'probe_released');
     }
 
     public function recordFailure(): void
@@ -115,7 +120,7 @@ final class CircuitBreaker
                 failures: [$now],
                 halfOpenSuccesses: 0,
                 halfOpenInflight: 0,
-            ));
+            ), 'probe_failed');
 
             return;
         }
@@ -134,7 +139,7 @@ final class CircuitBreaker
                 failures: $failures,
                 halfOpenSuccesses: 0,
                 halfOpenInflight: 0,
-            ));
+            ), 'failure_threshold');
 
             return;
         }
@@ -145,7 +150,7 @@ final class CircuitBreaker
             failures: $failures,
             halfOpenSuccesses: 0,
             halfOpenInflight: 0,
-        ));
+        ), 'failure_recorded');
     }
 
     public function forceOpen(): void
@@ -156,17 +161,22 @@ final class CircuitBreaker
             failures: [],
             halfOpenSuccesses: 0,
             halfOpenInflight: 0,
-        ));
+        ), 'forced');
     }
 
     public function forceClosed(): void
     {
-        $this->persist($this->closedState());
+        $this->persist($this->closedState(), 'forced');
     }
 
     public function reset(): void
     {
+        $previous = $this->hydrate()->state;
         $this->store->forget($this->storageKey);
+
+        if ($previous !== CircuitState::Closed) {
+            $this->dispatchTransition($previous, CircuitState::Closed, 'reset');
+        }
     }
 
     private function maybeTransitionToHalfOpen(CircuitSnapshot $snapshot): bool
@@ -183,10 +193,10 @@ final class CircuitBreaker
             failures: [],
             halfOpenSuccesses: 0,
             halfOpenInflight: 0,
-        ));
+        ), 'cooldown_elapsed');
     }
 
-    private function reserveHalfOpenProbe(CircuitSnapshot $snapshot): bool
+    private function reserveHalfOpenProbe(CircuitSnapshot $snapshot, string $reason = 'probe_reserved'): bool
     {
         if ($snapshot->halfOpenInflight >= $this->config->halfOpenProbes) {
             return false;
@@ -198,7 +208,7 @@ final class CircuitBreaker
             failures: [],
             halfOpenSuccesses: $snapshot->halfOpenSuccesses,
             halfOpenInflight: $snapshot->halfOpenInflight + 1,
-        ));
+        ), $reason);
 
         return true;
     }
@@ -214,14 +224,56 @@ final class CircuitBreaker
         return CircuitSnapshot::fromArray($raw);
     }
 
-    private function persist(CircuitSnapshot $snapshot): void
+    private function persist(CircuitSnapshot $snapshot, string $reason): void
     {
+        $previous = $this->hydrate();
+
         $ttl = max(
             $this->config->failureWindowSeconds,
             $this->config->openSeconds,
         ) * 2;
 
         $this->store->put($this->storageKey, $snapshot->toArray(), $ttl);
+
+        if ($previous->state !== $snapshot->state) {
+            $this->dispatchTransition($previous->state, $snapshot->state, $reason);
+        }
+    }
+
+    private function dispatchTransition(CircuitState $previous, CircuitState $next, string $reason): void
+    {
+        if ($this->events === null) {
+            return;
+        }
+
+        $event = match ($next) {
+            CircuitState::Open => new CircuitOpened(
+                name: $this->name,
+                storageKey: $this->storageKey,
+                operation: $this->operation,
+                app: $this->app,
+                previous: $previous,
+                reason: $reason,
+            ),
+            CircuitState::Closed => new CircuitClosed(
+                name: $this->name,
+                storageKey: $this->storageKey,
+                operation: $this->operation,
+                app: $this->app,
+                previous: $previous,
+                reason: $reason,
+            ),
+            CircuitState::HalfOpen => new CircuitHalfOpened(
+                name: $this->name,
+                storageKey: $this->storageKey,
+                operation: $this->operation,
+                app: $this->app,
+                previous: $previous,
+                reason: $reason,
+            ),
+        };
+
+        $this->events->dispatch($event);
     }
 
     private function closedState(): CircuitSnapshot

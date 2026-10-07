@@ -7,6 +7,7 @@ namespace Milon\Fuse\Saloon\Traits;
 use Milon\Fuse\CircuitBreaker;
 use Milon\Fuse\CircuitBreakerConfig;
 use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\Contracts\CircuitEventDispatcher;
 use Milon\Fuse\Laravel\FuseManager;
 use Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation;
 use Milon\Fuse\Saloon\Middleware\CircuitBreakerMiddleware;
@@ -47,6 +48,7 @@ trait HasCircuitBreaker
             config: $this->resolveCircuitBreakerConfig(),
             operation: $operation,
             app: $this->resolveCircuitBreakerApp(),
+            events: $this->resolveCircuitEventDispatcher(),
         );
 
         return $this->fuseCircuitBreaker;
@@ -96,6 +98,11 @@ trait HasCircuitBreaker
             .static::class
             .' or use Laravel with Milon\\Fuse\\Laravel\\FuseServiceProvider registered.',
         );
+    }
+
+    protected function resolveCircuitEventDispatcher(): ?CircuitEventDispatcher
+    {
+        return $this->resolveLaravelFuseManager()?->events();
     }
 
     protected function resolveLaravelFuseManager(): ?FuseManager

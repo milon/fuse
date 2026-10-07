@@ -32,6 +32,10 @@ The classifier looks at the class name and the message. `card declined` does not
 
 Yes. Pass `operation: 'charge'` and `operation: 'refund'`, or implement `HasCircuitBreakerOperation` on the Saloon request. Different operations are different keys.
 
+## Can I listen when a circuit opens?
+
+Yes. In Laravel, listen for `Milon\Fuse\Events\CircuitOpened` (also `CircuitClosed` and `CircuitHalfOpened`). See [Laravel](07-laravel.html). Outside Laravel, pass a `CircuitEventDispatcher` to `Fuse::for()`.
+
 ## What is the difference between forceClosed and reset?
 
 `forceClosed()` writes a clean closed snapshot. `reset()` deletes the row or cache key. The next call behaves the same way in both cases: the circuit is closed and has no recorded failures.

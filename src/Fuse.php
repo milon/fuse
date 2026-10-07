@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Milon\Fuse;
 
 use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\Contracts\CircuitEventDispatcher;
 use Milon\Fuse\Support\FailureClassifier;
 use Throwable;
 
@@ -26,6 +27,7 @@ final class Fuse
         ?string $operation = null,
         ?string $app = null,
         ?Clock $clock = null,
+        ?CircuitEventDispatcher $events = null,
     ): self {
         $config ??= CircuitBreakerConfig::defaults();
 
@@ -37,6 +39,7 @@ final class Fuse
                 operation: $operation,
                 app: $app,
                 clock: $clock,
+                events: $events,
             ),
             $config,
         );

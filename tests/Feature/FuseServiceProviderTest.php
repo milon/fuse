@@ -12,8 +12,10 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\ServiceProvider;
 use Milon\Fuse\CircuitBreakerConfig;
 use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\Contracts\CircuitEventDispatcher;
 use Milon\Fuse\Laravel\FuseManager;
 use Milon\Fuse\Laravel\FuseServiceProvider;
+use Milon\Fuse\Laravel\LaravelCircuitEventDispatcher;
 use Milon\Fuse\Stores\LaravelCacheStore;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -65,9 +67,12 @@ final class FuseServiceProviderTest extends TestCase
 
         $store = $this->app->make(CircuitBreakerStore::class);
         $manager = $this->app->make(FuseManager::class);
+        $events = $this->app->make(CircuitEventDispatcher::class);
 
         $this->assertInstanceOf(LaravelCacheStore::class, $store);
+        $this->assertInstanceOf(LaravelCircuitEventDispatcher::class, $events);
         $this->assertSame($store, $manager->store());
+        $this->assertSame($events, $manager->events());
         $this->assertSame($store, $this->app->make(CircuitBreakerStore::class));
         $this->assertSame(['redis'], $this->app->cache->requested);
         $this->assertSame(8, $manager->configFor()->failureThreshold);
@@ -190,6 +195,14 @@ final class FuseApplication
         }
 
         return $this->instances[$abstract] = ($this->bindings[$abstract])();
+    }
+
+    public function bound(string $abstract): bool
+    {
+        return $abstract === 'config'
+            || $abstract === 'cache'
+            || array_key_exists($abstract, $this->instances)
+            || array_key_exists($abstract, $this->bindings);
     }
 
     public function singleton(string $abstract, callable $concrete): void

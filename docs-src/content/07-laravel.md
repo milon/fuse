@@ -89,9 +89,36 @@ An open circuit stored in Redis is visible to the next PHP request and to every 
 | Binding | What you get |
 | --- | --- |
 | `Milon\Fuse\Contracts\CircuitBreakerStore` | `LaravelCacheStore` or `DatabaseStore` |
+| `Milon\Fuse\Contracts\CircuitEventDispatcher` | Dispatches into Laravel's event system |
 | `Milon\Fuse\Laravel\FuseManager` | The manager, as a singleton (also the `Fuse` facade root) |
 
 Each `Fuse::for()` / `fuse('…')` returns a new fuse bound to the shared store and the config for that name.
+
+## State-change events
+
+When a circuit changes state, Fuse dispatches a plain event object through Laravel's dispatcher:
+
+| Event | When |
+| --- | --- |
+| `Milon\Fuse\Events\CircuitOpened` | Closed or half-open → open |
+| `Milon\Fuse\Events\CircuitHalfOpened` | Open → half-open (cooldown over) |
+| `Milon\Fuse\Events\CircuitClosed` | Open or half-open → closed (including `reset()`) |
+
+Each event carries `name`, `storageKey`, `operation`, `app`, `previous` (`CircuitState`), and `reason` (`failure_threshold`, `probe_failed`, `probes_succeeded`, `cooldown_elapsed`, `forced`, `reset`, …).
+
+```php
+use Illuminate\Support\Facades\Event;
+use Milon\Fuse\Events\CircuitOpened;
+
+Event::listen(CircuitOpened::class, function (CircuitOpened $event): void {
+    logger()->warning('Circuit opened', [
+        'key' => $event->storageKey,
+        'reason' => $event->reason,
+    ]);
+});
+```
+
+Saloon connectors that use `HasCircuitBreaker` share the same dispatcher. Outside Laravel, pass a `CircuitEventDispatcher` into `Fuse::for(..., events: $dispatcher)`.
 
 ## When discovery is off
 

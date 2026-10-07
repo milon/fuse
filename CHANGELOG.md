@@ -5,6 +5,7 @@
 - Saloon `HasCircuitBreaker` resolves store and config from Laravel's `FuseManager` when the service provider is registered, so a connector only needs the trait (optionally a custom circuit name)
 - Default Saloon circuit names strip a trailing `Connector` and kebab-case the rest (`BillingConnector` → `billing`)
 - Laravel `Fuse` facade and `fuse()` helper for resolving named circuits
+- Circuit state-change events (`CircuitOpened`, `CircuitClosed`, `CircuitHalfOpened`) with a Laravel dispatcher
 
 ## 1.0.0 - 2026-10-02
 

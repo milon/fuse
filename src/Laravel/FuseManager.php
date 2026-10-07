@@ -6,6 +6,7 @@ namespace Milon\Fuse\Laravel;
 
 use Milon\Fuse\CircuitBreakerConfig;
 use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\Contracts\CircuitEventDispatcher;
 use Milon\Fuse\Fuse;
 
 final class FuseManager
@@ -16,11 +17,17 @@ final class FuseManager
     public function __construct(
         private readonly CircuitBreakerStore $store,
         private readonly array $settings,
+        private readonly ?CircuitEventDispatcher $events = null,
     ) {}
 
     public function store(): CircuitBreakerStore
     {
         return $this->store;
+    }
+
+    public function events(): ?CircuitEventDispatcher
+    {
+        return $this->events;
     }
 
     public function configFor(?string $name = null): CircuitBreakerConfig
@@ -40,6 +47,7 @@ final class FuseManager
             config: $config ?? $this->configFor($name),
             operation: $operation,
             app: $app,
+            events: $this->events,
         );
     }
 

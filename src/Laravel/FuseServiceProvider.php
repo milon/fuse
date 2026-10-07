@@ -6,9 +6,11 @@ namespace Milon\Fuse\Laravel;
 
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
 use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Support\ServiceProvider;
 use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\Contracts\CircuitEventDispatcher;
 use Milon\Fuse\Stores\DatabaseStore;
 use Milon\Fuse\Stores\LaravelCacheStore;
 use RuntimeException;
@@ -20,6 +22,8 @@ class FuseServiceProvider extends ServiceProvider
         $this->mergeConfigFrom($this->packageConfigPath(), 'fuse');
 
         $this->app->singleton(CircuitBreakerStore::class, fn (): CircuitBreakerStore => $this->makeStore());
+
+        $this->app->singleton(CircuitEventDispatcher::class, fn (): CircuitEventDispatcher => $this->makeEventDispatcher());
 
         $this->app->singleton(FuseManager::class, fn (): FuseManager => $this->makeManager());
     }
@@ -91,9 +95,30 @@ class FuseServiceProvider extends ServiceProvider
         );
     }
 
+    private function makeEventDispatcher(): CircuitEventDispatcher
+    {
+        if ($this->app->bound(EventDispatcher::class)) {
+            return new LaravelCircuitEventDispatcher($this->app->make(EventDispatcher::class));
+        }
+
+        if ($this->app->bound('events')) {
+            $resolved = $this->app->make('events');
+
+            return new LaravelCircuitEventDispatcher(
+                $resolved instanceof EventDispatcher ? $resolved : null,
+            );
+        }
+
+        return new LaravelCircuitEventDispatcher;
+    }
+
     private function makeManager(): FuseManager
     {
-        return new FuseManager($this->app->make(CircuitBreakerStore::class), $this->settings());
+        return new FuseManager(
+            $this->app->make(CircuitBreakerStore::class),
+            $this->settings(),
+            $this->app->make(CircuitEventDispatcher::class),
+        );
     }
 
     /**
