@@ -81,12 +81,14 @@ The published file is the same shape as the package default. Environment variabl
 ],
 ```
 
-`app(FuseManager::class)->for('billing-sdk')` and `configFor('billing-sdk')` use threshold 3 and an open duration of 15 seconds. `for('other')` still uses 8 and 30. A non-array entry under `breakers` is ignored and the shared defaults apply.
+`Fuse::for('billing-sdk')` and `Fuse::configFor('billing-sdk')` use threshold 3 and an open duration of 15 seconds. `for('other')` still uses 8 and 30. A non-array entry under `breakers` is ignored and the shared defaults apply.
 
 An explicit config object always wins over the named override:
 
 ```php
-$fuse = app(FuseManager::class)->for(
+use Milon\Fuse\Laravel\Facades\Fuse;
+
+$fuse = Fuse::for(
     'billing-sdk',
     config: new CircuitBreakerConfig(failureThreshold: 1),
 );

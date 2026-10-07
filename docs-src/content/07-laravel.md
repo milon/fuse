@@ -4,7 +4,7 @@ title: Laravel
 
 # Laravel
 
-In a Laravel application the package is a service provider, a config file, and `FuseManager`. You do not register the provider yourself. Composer discovery loads `Milon\Fuse\Laravel\FuseServiceProvider`.
+In a Laravel application the package is a service provider, a config file, a `Fuse` facade, and a `fuse()` helper. You do not register the provider yourself. Composer discovery loads `Milon\Fuse\Laravel\FuseServiceProvider` and aliases the facade as `Fuse`.
 
 ```shell
 composer require milon/fuse
@@ -17,21 +17,21 @@ Publishing is optional. Without it, the package config is still merged, and the 
 
 ```php
 use Milon\Fuse\CircuitOpenException;
-use Milon\Fuse\Laravel\FuseManager;
-
-$fuse = app(FuseManager::class)->for('billing-sdk');
+use Milon\Fuse\Laravel\Facades\Fuse;
 
 try {
-    $invoice = $fuse->run(fn () => $this->billing->charge($amount));
+    $invoice = Fuse::for('billing-sdk')->run(fn () => $this->billing->charge($amount));
 } catch (CircuitOpenException) {
     $invoice = $this->queueForLater($amount);
 }
 ```
 
+`fuse('billing-sdk')` is the same as `Fuse::for('billing-sdk')`. Call `fuse()` with no arguments when you need the manager (`configFor()`, `store()`).
+
 `for()` reads the shared config, then overlays `config('fuse.breakers.billing-sdk')` when that entry is an array. The store is the singleton bound by the provider, so every `for('billing-sdk')` in every request shares one circuit.
 
 ```php
-$fuse = app(FuseManager::class)->for(
+$fuse = Fuse::for(
     name: 'billing',
     operation: 'charge',
     app: 'punt',
@@ -39,6 +39,8 @@ $fuse = app(FuseManager::class)->for(
 ```
 
 That key is `fuse:punt:billing:charge` when `key_prefix` is `fuse`.
+
+The facade class is `Milon\Fuse\Laravel\Facades\Fuse`. That is not the core `Milon\Fuse\Fuse` value object — import the facade (or use the `Fuse` alias / `fuse()` helper) in Laravel code.
 
 ## Named breakers
 
@@ -71,9 +73,9 @@ return [
 Read the merged config without building a fuse:
 
 ```php
-app(FuseManager::class)->configFor('billing-sdk')->failureThreshold; // 3
-app(FuseManager::class)->configFor('search')->failureThreshold;       // 8
-app(FuseManager::class)->configFor()->openSeconds;                     // 30
+Fuse::configFor('billing-sdk')->failureThreshold; // 3
+Fuse::configFor('search')->failureThreshold;       // 8
+Fuse::configFor()->openSeconds;                     // 30
 ```
 
 ## Cache store
@@ -87,9 +89,9 @@ An open circuit stored in Redis is visible to the next PHP request and to every 
 | Binding | What you get |
 | --- | --- |
 | `Milon\Fuse\Contracts\CircuitBreakerStore` | `LaravelCacheStore` or `DatabaseStore` |
-| `Milon\Fuse\Laravel\FuseManager` | The manager, as a singleton |
+| `Milon\Fuse\Laravel\FuseManager` | The manager, as a singleton (also the `Fuse` facade root) |
 
-`Fuse` itself is not a singleton. Each `for()` returns a new fuse bound to the shared store and the config for that name.
+Each `Fuse::for()` / `fuse('…')` returns a new fuse bound to the shared store and the config for that name.
 
 ## When discovery is off
 

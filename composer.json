@@ -46,7 +46,10 @@
     "autoload": {
         "psr-4": {
             "Milon\\Fuse\\": "src/"
-        }
+        },
+        "files": [
+            "src/Laravel/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
@@ -64,7 +67,10 @@
         "laravel": {
             "providers": [
                 "Milon\\Fuse\\Laravel\\FuseServiceProvider"
-            ]
+            ],
+            "aliases": {
+                "Fuse": "Milon\\Fuse\\Laravel\\Facades\\Fuse"
+            }
         }
     },
     "config": {

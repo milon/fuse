@@ -162,13 +162,13 @@ php artisan vendor:publish --tag=fuse-config
 ```
 
 ```php
-use Milon\Fuse\Laravel\FuseManager;
+use Milon\Fuse\Laravel\Facades\Fuse;
 
-$fuse = app(FuseManager::class)->for('billing-sdk');
-
-$result = $fuse->run(
+$result = Fuse::for('billing-sdk')->run(
     execute: fn () => $client->charge($payload),
 );
+
+// or: fuse('billing-sdk')->run(...)
 ```
 
 Set `FUSE_STORE=database` to use the database store after the migration has run. Set `cache_store` to pin a cache driver when the store is `cache`. A `breakers` entry overrides the defaults for one circuit name:
@@ -182,7 +182,7 @@ Set `FUSE_STORE=database` to use the database store after the migration has run.
 ],
 ```
 
-`FuseManager::for('billing-sdk')` and `configFor('billing-sdk')` pick up that override.
+`Fuse::for('billing-sdk')` and `Fuse::configFor('billing-sdk')` pick up that override.
 
 A Saloon connector that uses `HasCircuitBreaker` picks up the same store and named config automatically. The derived name (`BillingConnector` → `billing`) is what `breakers.billing` matches.
 

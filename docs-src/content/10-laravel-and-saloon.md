@@ -76,10 +76,9 @@ public function __invoke(BillingConnector $billing)
 A queued job that uses the manager, and a connector that uses the same store and name, share the snapshot:
 
 ```php
-use Milon\Fuse\Laravel\FuseManager;
+use Milon\Fuse\Laravel\Facades\Fuse;
 
-app(FuseManager::class)
-    ->for('billing', operation: 'charge')
+Fuse::for('billing', operation: 'charge')
     ->run(fn () => $this->legacyClient->charge($amount));
 ```
 

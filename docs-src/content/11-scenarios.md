@@ -248,9 +248,9 @@ FUSE_STORE=database
 ```
 
 ```php
-app(Milon\Fuse\Laravel\FuseManager::class)
-    ->for('billing-sdk')
-    ->run(fn () => $billing->charge($amount));
+use Milon\Fuse\Laravel\Facades\Fuse;
+
+Fuse::for('billing-sdk')->run(fn () => $billing->charge($amount));
 ```
 
 Inspect it:

@@ -51,12 +51,10 @@ With `FUSE_STORE=database`, application code is the same as the cache store:
 
 ```php
 use Milon\Fuse\CircuitOpenException;
-use Milon\Fuse\Laravel\FuseManager;
+use Milon\Fuse\Laravel\Facades\Fuse;
 
 try {
-    app(FuseManager::class)
-        ->for('billing-sdk')
-        ->run(fn () => $this->billing->charge($amount));
+    Fuse::for('billing-sdk')->run(fn () => $this->billing->charge($amount));
 } catch (CircuitOpenException) {
     return $this->fallback();
 }
