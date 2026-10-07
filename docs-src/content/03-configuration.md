@@ -4,7 +4,7 @@ title: Configuration
 
 # Configuration
 
-Pass a `CircuitBreakerConfig` when you build a fuse, or let Laravel read `config/fuse.php`. The same numbers mean the same thing in both places.
+Pass a `CircuitBreakerConfig` when you build a fuse, pass a settings array to `FuseFactory`, or let Laravel read `config/fuse.php`. The same snake_case keys mean the same thing in every place.
 
 ## Defaults
 
@@ -44,7 +44,37 @@ $config = new CircuitBreakerConfig(
 );
 ```
 
-`CircuitBreakerConfig::defaults()` is `new CircuitBreakerConfig` with no arguments. `CircuitBreakerConfig::fromArray()` reads the snake_case keys from the table above. Unknown keys are ignored, which is why the Laravel file can also hold `store` and `breakers`.
+`CircuitBreakerConfig::defaults()` is `new CircuitBreakerConfig` with no arguments. `CircuitBreakerConfig::fromArray()` reads the snake_case keys from the table above. Unknown keys are ignored, which is why the Laravel file and `FuseFactory` settings can also hold `store` and `breakers`.
+
+## With FuseFactory (plain PHP)
+
+The factory takes the same array shape as `config/fuse.php` (minus Laravel-only store wiring if you prefer to pass a store object):
+
+```php
+use Milon\Fuse\FuseFactory;
+use Milon\Fuse\Stores\Psr16Store;
+
+$factory = new FuseFactory(
+    store: new Psr16Store($cache),
+    settings: [
+        'failure_threshold' => 8,
+        'open_seconds' => 30,
+        'key_prefix' => 'fuse',
+        'breakers' => [
+            'billing' => [
+                'failure_threshold' => 3,
+                'open_seconds' => 15,
+            ],
+        ],
+    ],
+);
+
+$factory->configFor('billing')->failureThreshold; // 3
+$factory->configFor('search')->failureThreshold;  // 8
+$factory->for('billing')->run(fn () => $billing->charge($amount));
+```
+
+Laravel's `FuseManager` extends `FuseFactory` and reads those keys from the published config file.
 
 ## In Laravel
 

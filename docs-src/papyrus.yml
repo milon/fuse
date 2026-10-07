@@ -65,8 +65,9 @@ site:
       chapters:
         - 11-scenarios.md
         - 12-controlling-the-breaker.md
-        - 13-faq.md
-        - 14-license.md
+        - 13-testing.md
+        - 14-faq.md
+        - 15-license.md
 
 header:
   style: 'font-style: italic; text-align: right; border-bottom: solid 1px #808080;'

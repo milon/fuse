@@ -4,7 +4,7 @@ title: Saloon
 
 # Saloon
 
-The Saloon adapter is a trait on the connector and two pieces of middleware on every request. It works without Laravel. Install both packages:
+The Saloon adapter is a trait on the connector and middleware on every request. It works without Laravel. Install both packages:
 
 ```shell
 composer require milon/fuse saloonphp/saloon
@@ -12,7 +12,77 @@ composer require milon/fuse saloonphp/saloon
 
 ## A connector
 
-Without a container-bound `FuseFactory`, return a store (or bind `FuseFactory` / Laravel's `FuseManager` in Illuminate's container). The other methods have defaults: the circuit name is derived from the class (`BillingConnector` → `billing`), the config is `CircuitBreakerConfig::defaults()`, and there is no app segment. In Laravel, skip the store method — see [Laravel and Saloon](10-laravel-and-saloon.html).
+### Minimal (defaults)
+
+The circuit name is derived from the class (`BillingConnector` → `billing`). Config defaults to `CircuitBreakerConfig::defaults()`. You must still provide a store unless a `FuseFactory` / `FuseManager` is bound in Illuminate's container.
+
+```php
+use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
+use Milon\Fuse\Stores\Psr16Store;
+use Saloon\Http\Connector;
+
+class BillingConnector extends Connector
+{
+    use HasCircuitBreaker;
+
+    public function __construct(private Psr\SimpleCache\CacheInterface $cache) {}
+
+    public function resolveBaseUrl(): string
+    {
+        return 'https://billing.example.com';
+    }
+
+    protected function resolveCircuitBreakerStore(): CircuitBreakerStore
+    {
+        return new Psr16Store($this->cache);
+    }
+}
+```
+
+### With FuseFactory (recommended outside Laravel)
+
+Share store, named overrides, and events the same way Laravel does:
+
+```php
+use Milon\Fuse\CircuitBreakerConfig;
+use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\Contracts\CircuitEventDispatcher;
+use Milon\Fuse\FuseFactory;
+use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
+use Saloon\Http\Connector;
+
+class BillingConnector extends Connector
+{
+    use HasCircuitBreaker;
+
+    public function __construct(private FuseFactory $fuse) {}
+
+    public function resolveBaseUrl(): string
+    {
+        return 'https://billing.example.com';
+    }
+
+    protected function resolveCircuitBreakerStore(): CircuitBreakerStore
+    {
+        return $this->fuse->store();
+    }
+
+    protected function resolveCircuitBreakerConfig(): CircuitBreakerConfig
+    {
+        return $this->fuse->configFor($this->resolveCircuitBreakerName());
+    }
+
+    protected function resolveCircuitEventDispatcher(): ?CircuitEventDispatcher
+    {
+        return $this->fuse->events();
+    }
+}
+```
+
+If you bind `FuseFactory` (or Laravel's `FuseManager`) on `Illuminate\Container\Container::getInstance()`, you can omit those three methods — the trait resolves them automatically. In Laravel that binding already exists; see [Laravel and Saloon](10-laravel-and-saloon.html).
+
+### Full overrides
 
 ```php
 use Milon\Fuse\CircuitBreakerConfig;
@@ -75,7 +145,8 @@ use Milon\Fuse\CircuitOpenException;
 try {
     $response = $connector->send(new ChargeRequest);
 } catch (CircuitOpenException $exception) {
-    // Nothing was sent. Use $exception->storageKey and $exception->retryAfterSeconds.
+    // Nothing was sent.
+    // $exception->storageKey, $exception->retryAfterSeconds, $exception->circuitName
 }
 ```
 
@@ -101,9 +172,22 @@ class ChargeRequest extends Request
 }
 ```
 
-Override the name with `protected string $circuitBreakerOperation = 'checkout';` when the derived name is wrong. The older `HasCircuitBreakerOperation` interface still works if you prefer a custom `resolveCircuitBreakerOperation()` method.
+Override the name when the derived value is wrong:
 
-`ChargeRequest` uses `fuse:punt:billing-sdk:charge`. A `RefundRequest` uses a different key. A request without the trait or interface uses the connector circuit, with no operation segment.
+```php
+class CheckoutRequest extends Request
+{
+    use HasCircuitBreakerOperation;
+
+    protected string $circuitBreakerOperation = 'charge';
+
+    // ...
+}
+```
+
+The older `Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation` interface still works if you prefer a custom `resolveCircuitBreakerOperation()` method.
+
+With the connector examples above, `ChargeRequest` uses a key like `fuse:billing:charge` (or `fuse:punt:billing-sdk:charge` when you set `app` and a custom name). A `RefundRequest` uses a different key. A request without the trait or interface uses the connector circuit, with no operation segment.
 
 ## Counted responses
 
@@ -113,13 +197,14 @@ A thrown connect timeout records a failure through the fatal middleware and then
 
 ## Tests and mocks
 
-Saloon runs its mock middleware before Fuse's request middleware. If you mock a sequence of responses and the last send is the one that should be rejected, leave a spare `MockResponse` on the connector. Otherwise Saloon throws `NoMockResponseFoundException` before Fuse can throw `CircuitOpenException`.
-
-`FuseMockClient::mock()` pads that spare for you:
+See [Testing](13-testing.html) for `FuseMockClient` and `InteractsWithFuse`. Short version: Saloon's mock middleware runs before Fuse, so pad a spare mock for open-circuit rejects — or let `FuseMockClient::mock()` do it:
 
 ```php
+use Milon\Fuse\CircuitOpenException;
+use Milon\Fuse\FuseFactory;
 use Milon\Fuse\Testing\FuseMockClient;
 use Milon\Fuse\Testing\InteractsWithFuse;
+use PHPUnit\Framework\TestCase;
 use Saloon\Http\Faking\MockResponse;
 
 final class BillingConnectorTest extends TestCase
@@ -128,18 +213,18 @@ final class BillingConnectorTest extends TestCase
 
     public function test_open_circuit_rejects(): void
     {
+        /** @var BillingConnector $connector */
+        /** @var FuseFactory $factory */
+
         FuseMockClient::mock($connector, [
-            MockResponse::make(status: 503), // trips the breaker
-            // spare for the rejected send is added automatically
+            MockResponse::make(status: 503),
         ]);
 
         $connector->send(new ChargeRequest);
-        $this->assertCircuitOpenFor(app(FuseManager::class), 'billing');
+        $this->assertCircuitOpenFor($factory, 'billing', operation: 'charge');
 
         $this->expectException(CircuitOpenException::class);
         $connector->send(new ChargeRequest);
     }
 }
 ```
-
-`InteractsWithFuse` also gives `forceCircuitOpen`, `resetCircuit`, and `assertCircuitClosed` (plus `*For` variants that take a `FuseFactory` / `FuseManager`).

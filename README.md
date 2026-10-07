@@ -205,10 +205,14 @@ Set `FUSE_STORE=database` to use the database store after the migration has run.
 
 `Fuse::for('billing-sdk')` and `Fuse::configFor('billing-sdk')` pick up that override.
 
-Listen for `Milon\Fuse\Events\CircuitOpened` (and `CircuitClosed` / `CircuitHalfOpened`) when a circuit changes state.
+Listen for `Milon\Fuse\Events\CircuitOpened` (and `CircuitClosed` / `CircuitHalfOpened`) when a circuit changes state:
+
+```php
+Event::listen(CircuitOpened::class, fn (CircuitOpened $e) => logger()->warning($e->storageKey));
+```
 
 ```bash
-php artisan fuse:status billing
+php artisan fuse:status billing --operation=charge
 php artisan fuse:reset billing --force
 ```
 
@@ -237,12 +241,14 @@ The default configuration is lenient: a brief blip does not open the circuit, an
 ```php
 use Milon\Fuse\Testing\FuseMockClient;
 use Milon\Fuse\Testing\InteractsWithFuse;
+use Saloon\Http\Faking\MockResponse;
 
 FuseMockClient::mock($connector, [MockResponse::make(status: 503)]);
 $this->assertCircuitOpen($fuse);
+$this->forceCircuitOpenFor($factory, 'billing', operation: 'charge');
 ```
 
-`FuseMockClient` pads a spare Saloon mock so an open-circuit reject is not masked by `NoMockResponseFoundException`. `InteractsWithFuse` adds PHPUnit assertions and `forceCircuitOpen` / `resetCircuit` helpers.
+`FuseMockClient` pads a spare Saloon mock so an open-circuit reject is not masked by `NoMockResponseFoundException`. `InteractsWithFuse` adds PHPUnit assertions and `forceCircuitOpen` / `resetCircuit` helpers. Full examples: [oss.milon.im/fuse](https://oss.milon.im/fuse/) → Testing.
 
 ## Development
 

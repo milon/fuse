@@ -12,6 +12,7 @@
 - Testing helpers: `FuseMockClient`, `FuseAssertions`, and `InteractsWithFuse`
 - Framework-agnostic `FuseFactory` for shared store, named breaker overrides, and events (`FuseManager` extends it)
 - `CallableCircuitEventDispatcher` and `Psr14CircuitEventDispatcher` for non-Laravel event listeners
+- Docs updated for FuseFactory, events, facade/helper, Artisan commands, Saloon traits, exception fields, and testing helpers
 
 ## 1.0.0 - 2026-10-02
 

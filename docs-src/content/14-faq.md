@@ -30,15 +30,23 @@ The classifier looks at the class name and the message. `card declined` does not
 
 ## Can charge and refund fail independently?
 
-Yes. Pass `operation: 'charge'` and `operation: 'refund'`, or add the `HasCircuitBreakerOperation` trait on the Saloon request. Different operations are different keys.
+Yes. Pass `operation: 'charge'` and `operation: 'refund'`, or add the `HasCircuitBreakerOperation` trait on the Saloon request (`ChargeRequest` → `charge` by default). Different operations are different keys.
+
+## What is on CircuitOpenException?
+
+`circuitName`, `storageKey`, `retryAfterSeconds` (approximate seconds until a probe may run, or `0` when the cooldown has elapsed), `operation`, and `app`. See [Plain PHP](04-plain-php.html).
+
+## How do I share named breaker config without Laravel?
+
+Use `FuseFactory` with a `settings` array shaped like `config/fuse.php` (`failure_threshold`, `breakers`, …). See [Plain PHP](04-plain-php.html) and [Configuration](03-configuration.html).
 
 ## How do I inspect or reset a circuit in production?
 
-`php artisan fuse:status billing` and `php artisan fuse:reset billing`. See [Laravel](07-laravel.html).
+In Laravel: `php artisan fuse:status billing` and `php artisan fuse:reset billing`. See [Laravel](07-laravel.html). Outside Laravel, use `breaker()->state()`, `forceOpen()`, `forceClosed()`, or `reset()` on a `Fuse` / `FuseFactory::for(...)`.
 
 ## Can I listen when a circuit opens?
 
-Yes. In Laravel, listen for `Milon\Fuse\Events\CircuitOpened` (also `CircuitClosed` and `CircuitHalfOpened`). See [Laravel](07-laravel.html). Outside Laravel, attach `CallableCircuitEventDispatcher` or `Psr14CircuitEventDispatcher` to a `FuseFactory` (or pass `events:` into `Fuse::for()`).
+Yes. In Laravel, listen for `Milon\Fuse\Events\CircuitOpened` (also `CircuitClosed` and `CircuitHalfOpened`). See [Laravel](07-laravel.html). Outside Laravel, attach `CallableCircuitEventDispatcher` or `Psr14CircuitEventDispatcher` to a `FuseFactory` (or pass `events:` into `Fuse::for()`). See [Plain PHP](04-plain-php.html).
 
 ## What is the difference between forceClosed and reset?
 
@@ -59,8 +67,12 @@ FUSE_CACHE_STORE=redis
 
 ## Saloon threw NoMockResponseFoundException instead of CircuitOpenException
 
-Saloon's mock middleware runs before Fuse. The open circuit never got to reject the call because the mock sequence was already empty. Use `Milon\Fuse\Testing\FuseMockClient::mock()` (it pads a spare response), or leave one spare `MockResponse` yourself.
+Saloon's mock middleware runs before Fuse. The open circuit never got to reject the call because the mock sequence was already empty. Use `Milon\Fuse\Testing\FuseMockClient::mock()` (it pads a spare response), or leave one spare `MockResponse` yourself. Full examples: [Testing](13-testing.html).
 
 ## Does the package load Laravel when I am not using Laravel?
 
 No. The service provider is only loaded by Laravel's package discovery. `DatabaseStore` and `LaravelCacheStore` are only loaded when your code references them. A project that requires `milon/fuse` and nothing else does not install Illuminate.
+
+## Fuse facade vs Milon\Fuse\Fuse?
+
+In Laravel, `Fuse::for('billing')` usually means the facade (`Milon\Fuse\Laravel\Facades\Fuse`), which proxies `FuseManager`. The core value object is `Milon\Fuse\Fuse`. Import the facade explicitly, use the `Fuse` alias, or call `fuse('billing')` to avoid mixing them up.

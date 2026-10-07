@@ -21,12 +21,20 @@ use Milon\Fuse\Laravel\Facades\Fuse;
 
 try {
     $invoice = Fuse::for('billing-sdk')->run(fn () => $this->billing->charge($amount));
-} catch (CircuitOpenException) {
-    $invoice = $this->queueForLater($amount);
+} catch (CircuitOpenException $exception) {
+    return response('Billing unavailable', 503)
+        ->header('Retry-After', (string) ($exception->retryAfterSeconds ?? 0));
 }
 ```
 
-`fuse('billing-sdk')` is the same as `Fuse::for('billing-sdk')`. Call `fuse()` with no arguments when you need the manager (`configFor()`, `store()`).
+`fuse('billing-sdk')` is the same as `Fuse::for('billing-sdk')`:
+
+```php
+fuse('billing-sdk')->run(fn () => $this->billing->charge($amount));
+
+fuse()->configFor('billing-sdk')->failureThreshold;
+fuse()->store(); // the shared CircuitBreakerStore
+```
 
 `for()` reads the shared config, then overlays `config('fuse.breakers.billing-sdk')` when that entry is an array. The store is the singleton bound by the provider, so every `for('billing-sdk')` in every request shares one circuit.
 
@@ -90,9 +98,9 @@ An open circuit stored in Redis is visible to the next PHP request and to every 
 | --- | --- |
 | `Milon\Fuse\Contracts\CircuitBreakerStore` | `LaravelCacheStore` or `DatabaseStore` |
 | `Milon\Fuse\Contracts\CircuitEventDispatcher` | Dispatches into Laravel's event system |
-| `Milon\Fuse\Laravel\FuseManager` | Laravel `FuseFactory` binding (also the `Fuse` facade root) |
+| `Milon\Fuse\Laravel\FuseManager` | Extends `FuseFactory`; also the `Fuse` facade root |
 
-Each `Fuse::for()` / `fuse('…')` returns a new fuse bound to the shared store and the config for that name.
+Each `Fuse::for()` / `fuse('…')` returns a new fuse bound to the shared store and the config for that name. Under the hood that is the same `FuseFactory` API documented in [Plain PHP](04-plain-php.html).
 
 ## State-change events
 
@@ -114,6 +122,7 @@ Event::listen(CircuitOpened::class, function (CircuitOpened $event): void {
     logger()->warning('Circuit opened', [
         'key' => $event->storageKey,
         'reason' => $event->reason,
+        'retry_after' => null, // use CircuitOpenException at the call site for retry-after
     ]);
 });
 ```
@@ -127,10 +136,12 @@ Inspect and reset circuits from the console:
 ```shell
 php artisan fuse:status
 php artisan fuse:status billing
-php artisan fuse:status billing --operation=charge
+php artisan fuse:status billing --operation=charge --app=punt
 php artisan fuse:reset billing --operation=charge
 php artisan fuse:reset billing --force
 ```
+
+Example status output fields: name, operation, app, storage key, state, failure count, `opened_at`, half-open counters, and whether a snapshot is stored.
 
 `fuse:status` without a name lists every entry under `config('fuse.breakers')`. Pass a name to inspect any circuit, including ones that are not in that list. `fuse:reset` deletes the stored snapshot (same as `breaker()->reset()`); use `--force` to skip the confirmation prompt.
 

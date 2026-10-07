@@ -66,7 +66,9 @@ $fuse->breaker()->state(); // CircuitState::Open
 try {
     $fuse->run(fn () => 'not called');
 } catch (CircuitOpenException $e) {
-    $e->circuitName; // billing-sdk
+    $e->circuitName;       // billing-sdk
+    $e->storageKey;        // fuse:billing-sdk
+    $e->retryAfterSeconds; // e.g. 30
 }
 ```
 
@@ -222,19 +224,22 @@ Controller:
 
 ```php
 use Milon\Fuse\CircuitOpenException;
-use Milon\Fuse\Laravel\FuseManager;
+use Milon\Fuse\Laravel\Facades\Fuse;
 
-public function store(FuseManager $fuse, BillingClient $billing)
+public function store(BillingClient $billing)
 {
     try {
-        return $fuse->for('billing-sdk')->run(
+        return Fuse::for('billing-sdk')->run(
             fn () => $billing->charge(request('amount')),
         );
-    } catch (CircuitOpenException) {
-        return response()->json(['message' => 'Try again shortly.'], 503);
+    } catch (CircuitOpenException $exception) {
+        return response()->json(['message' => 'Try again shortly.'], 503)
+            ->header('Retry-After', (string) ($exception->retryAfterSeconds ?? 0));
     }
 }
 ```
+
+Or `fuse('billing-sdk')->run(...)`.
 
 ## 9. Laravel, database
 
@@ -302,7 +307,30 @@ class ChargeRequest extends Request
 $response = (new BillingConnector($cache))->send(new ChargeRequest);
 ```
 
-The default circuit name is derived from the class, so this one is `billing`. Eight responses with status 503 (the default threshold) open `fuse:billing:charge`. The ninth `send()` throws `CircuitOpenException` and does not leave the machine. A later 200 after the cooldown is a probe.
+The default circuit name is derived from the class, so this one is `billing`. The request trait derives operation `charge`. Eight responses with status 503 (the default threshold) open `fuse:billing:charge`. The ninth `send()` throws `CircuitOpenException` and does not leave the machine. A later 200 after the cooldown is a probe.
+
+### Same setup with FuseFactory
+
+```php
+use Milon\Fuse\Events\CallableCircuitEventDispatcher;
+use Milon\Fuse\Events\CircuitOpened;
+use Milon\Fuse\FuseFactory;
+use Milon\Fuse\Stores\Psr16Store;
+
+$factory = new FuseFactory(
+    store: new Psr16Store($cache),
+    settings: [
+        'breakers' => [
+            'billing' => ['failure_threshold' => 3],
+        ],
+    ],
+    events: (new CallableCircuitEventDispatcher)
+        ->listenFor(CircuitOpened::class, fn (CircuitOpened $e) => error_log($e->storageKey)),
+);
+
+// Inject $factory into BillingConnector and resolve store/config/events from it
+// (see Saloon → "With FuseFactory"), or bind FuseFactory on the container.
+```
 
 ## 11. Laravel and Saloon together
 
@@ -310,7 +338,10 @@ The default circuit name is derived from the class, so this one is `billing`. Ei
 
 ```php
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
+use Milon\Fuse\Saloon\Traits\HasCircuitBreakerOperation;
+use Saloon\Enums\Method;
 use Saloon\Http\Connector;
+use Saloon\Http\Request;
 
 class BillingConnector extends Connector
 {
@@ -321,9 +352,25 @@ class BillingConnector extends Connector
         return 'https://billing.example.com';
     }
 }
+
+class ChargeRequest extends Request
+{
+    use HasCircuitBreakerOperation;
+
+    protected Method $method = Method::POST;
+
+    public function resolveEndpoint(): string
+    {
+        return '/charge';
+    }
+}
 ```
 
-A 503 from `ChargeRequest` (operation `charge`) and a later `FuseManager::for('billing', operation: 'charge')` see one circuit.
+A 503 from `ChargeRequest` (operation `charge`) and a later `Fuse::for('billing', operation: 'charge')` / `fuse('billing', operation: 'charge')` see one circuit.
+
+```shell
+php artisan fuse:status billing --operation=charge
+```
 
 ## 12. Trip one operation, leave the other alone
 
@@ -356,3 +403,25 @@ $fuse->breaker()->forceClosed();
 ```
 
 `forceOpen()` writes an open snapshot with `opened_at` set to now. Calls are rejected until `open_seconds` have passed, then the next call is a probe, the same as a circuit that opened from failures. Call `forceOpen()` again before the cooldown ends to keep it open longer. `forceClosed()` or `reset()` lets traffic through immediately.
+
+In Laravel: `php artisan fuse:reset billing-sdk --force`, or `Fuse::for('billing-sdk')->breaker()->forceOpen()` in a command/job.
+
+## 14. PHPUnit + Saloon open reject
+
+See [Testing](13-testing.html). Pattern:
+
+```php
+use Milon\Fuse\CircuitOpenException;
+use Milon\Fuse\Testing\FuseMockClient;
+use Saloon\Http\Faking\MockResponse;
+
+FuseMockClient::mock($connector, [
+    MockResponse::make(status: 503),
+]);
+
+$connector->send(new ChargeRequest);
+$this->assertCircuitOpenFor($factory, 'billing', operation: 'charge');
+
+$this->expectException(CircuitOpenException::class);
+$connector->send(new ChargeRequest); // spare mock already padded
+```

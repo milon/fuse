@@ -14,7 +14,9 @@ The breaker does not know about HTTP clients. You pass it a callable. Optional a
 - A failure window, so a handful of old errors does not open the circuit forever.
 - Half-open probes, so recovery is tested with a few calls instead of a flood.
 - Pluggable storage: memory, Laravel cache, a database table, or any PSR-16 cache.
-- `CircuitOpenException` when a call is rejected, before your code runs.
+- `CircuitOpenException` when a call is rejected, with storage key and approximate retry-after.
+- `FuseFactory` for shared store, named breaker overrides, and events outside Laravel.
+- Optional Saloon traits, Laravel facade / `fuse()` helper, Artisan commands, and PHPUnit helpers.
 
 ## Where to go next
 
@@ -25,6 +27,8 @@ The breaker does not know about HTTP clients. You pass it a callable. Optional a
 | Call it from plain PHP | [Plain PHP](04-plain-php.html) |
 | Use it in Laravel | [Laravel](07-laravel.html) |
 | Protect a Saloon connector | [Saloon](09-saloon.html) |
+| Laravel + Saloon together | [Laravel and Saloon](10-laravel-and-saloon.html) |
 | See every combination, end to end | [Scenarios](11-scenarios.html) |
+| Write tests | [Testing](13-testing.html) |
 
 Start with [How it works](02-how-it-works.html) if the words closed, open, and half-open are new. Start with [Installation](01-installation.html) if you already know circuit breakers and want the package in a project.

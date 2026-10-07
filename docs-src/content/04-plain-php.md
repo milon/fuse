@@ -4,9 +4,9 @@ title: Plain PHP
 
 # Plain PHP
 
-This is the whole API when you are not using Laravel or Saloon. You build a `Fuse`, then call `run()`.
+This is the API when you are not using Laravel. You build a `Fuse` (or a `FuseFactory`), then call `run()`.
 
-`ArrayStore` is used below because it needs no extra packages. It forgets everything when the process ends. For a web request that must remember the last request, use a [PSR-16 store](06-stores.html) instead. The calls below do not change.
+`ArrayStore` is used in the short examples because it needs no extra packages. It forgets everything when the process ends. For a web request that must remember the last request, use a [PSR-16 store](06-stores.html) instead.
 
 ## A successful call
 
@@ -36,12 +36,21 @@ try {
     $invoice = $fuse->run(fn () => $this->billing->charge($amount));
 } catch (CircuitOpenException $exception) {
     // The callable did not run.
-    // $exception->circuitName, storageKey, retryAfterSeconds, operation, app
+    $exception->circuitName;        // billing-sdk
+    $exception->storageKey;         // fuse:billing-sdk
+    $exception->retryAfterSeconds;  // e.g. 27
+    $exception->operation;          // null, or "charge"
+    $exception->app;                // null, or "punt"
+
     return $this->fallback();
 }
 ```
 
-`CircuitOpenException` includes the storage key and an approximate `retryAfterSeconds` until the circuit may probe again. A typical message looks like `Circuit [billing-sdk] is open; key [fuse:billing-sdk]; retry after approximately 30s`.
+A typical message looks like:
+
+`Circuit [billing-sdk] is open; key [fuse:billing-sdk]; retry after approximately 27s`
+
+When the cooldown has already elapsed but no probe slot is free, `retryAfterSeconds` is `0` and the message says `cooldown elapsed`.
 
 ## A threshold that opens on the next failure
 
@@ -76,9 +85,9 @@ try {
 
 Build the second `Fuse` from the **same store** if you want it to see the open circuit. A new `ArrayStore` is empty.
 
-## A shared factory (named breakers)
+## FuseFactory: shared store, named breakers, events
 
-When several circuits share one store and you want per-name config overrides (like Laravel's `config/fuse.php`), use `FuseFactory`:
+When several circuits share one store and you want per-name config overrides (the same idea as Laravel's `config/fuse.php`), use `FuseFactory`:
 
 ```php
 use Milon\Fuse\Events\CallableCircuitEventDispatcher;
@@ -88,13 +97,14 @@ use Milon\Fuse\Stores\Psr16Store;
 
 $events = (new CallableCircuitEventDispatcher)
     ->listenFor(CircuitOpened::class, function (CircuitOpened $event): void {
-        error_log("circuit open: {$event->storageKey}");
+        error_log("circuit open: {$event->storageKey} ({$event->reason})");
     });
 
-$fuse = new FuseFactory(
+$factory = new FuseFactory(
     store: new Psr16Store($cache),
     settings: [
         'failure_threshold' => 8,
+        'open_seconds' => 30,
         'breakers' => [
             'billing' => [
                 'failure_threshold' => 3,
@@ -105,11 +115,73 @@ $fuse = new FuseFactory(
     events: $events,
 );
 
-$fuse->for('billing')->run(fn () => $billing->charge($amount));
-$fuse->for('search')->run(fn () => $search->query($q)); // still uses threshold 8
+$factory->for('billing')->run(fn () => $billing->charge($amount));
+$factory->for('search')->run(fn () => $search->query($q)); // still uses threshold 8
 ```
 
-`FuseManager` in Laravel is this same class with a Laravel binding. Saloon connectors resolve a container-bound `FuseFactory` / `FuseManager` for store, config, and events.
+Useful methods:
+
+| Method | Returns |
+| --- | --- |
+| `for($name, operation:, app:, config:)` | A `Fuse` bound to the shared store and merged config |
+| `configFor($name)` | Merged `CircuitBreakerConfig` for that name |
+| `store()` | The shared store |
+| `events()` | The dispatcher, or `null` |
+| `breakerNames()` | Keys under `settings['breakers']` |
+
+Laravel's `FuseManager` extends this class. Saloon connectors resolve a container-bound `FuseFactory` or `FuseManager` for store, config, and events when one is present.
+
+## Listening for state changes
+
+Circuits dispatch plain event objects when the state changes:
+
+| Event | When |
+| --- | --- |
+| `CircuitOpened` | Closed or half-open → open |
+| `CircuitHalfOpened` | Open → half-open |
+| `CircuitClosed` | Open or half-open → closed (including `reset()`) |
+
+Each event has `name`, `storageKey`, `operation`, `app`, `previous` (`CircuitState`), and `reason` (`failure_threshold`, `probe_failed`, `probes_succeeded`, `cooldown_elapsed`, `forced`, `reset`, …).
+
+### Callable dispatcher
+
+```php
+use Milon\Fuse\Events\CallableCircuitEventDispatcher;
+use Milon\Fuse\Events\CircuitClosed;
+use Milon\Fuse\Events\CircuitOpened;
+use Milon\Fuse\Fuse;
+
+$events = (new CallableCircuitEventDispatcher)
+    ->listenFor(CircuitOpened::class, function (CircuitOpened $event): void {
+        // alert, metric, log…
+    })
+    ->listen(function (object $event): void {
+        // every circuit event
+    });
+
+$fuse = Fuse::for(
+    name: 'billing',
+    store: $store,
+    events: $events,
+);
+```
+
+`listenFor()` only runs for that class. `listen()` runs for every dispatched object. You can also pass listeners into the constructor: `new CallableCircuitEventDispatcher($listener)`.
+
+### PSR-14 dispatcher
+
+```php
+use Milon\Fuse\Events\Psr14CircuitEventDispatcher;
+use Milon\Fuse\FuseFactory;
+
+$factory = new FuseFactory(
+    store: $store,
+    settings: [],
+    events: new Psr14CircuitEventDispatcher($psr14Dispatcher),
+);
+```
+
+Requires `psr/event-dispatcher`. Fuse calls `$psr14Dispatcher->dispatch($event)` on each transition.
 
 ## Separate operations
 
@@ -171,3 +243,5 @@ $first->breaker()->forceOpen();
 
 $second->breaker()->state(); // CircuitState::Open
 ```
+
+Or keep one `FuseFactory` and call `for()` per dependency name.

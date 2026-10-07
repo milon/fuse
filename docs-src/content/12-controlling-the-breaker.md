@@ -36,6 +36,21 @@ if ($fuse->breaker()->state() === CircuitState::Open) {
 
 Prefer catching `CircuitOpenException` from `run()`. Checking `state()` and then calling `run()` races with other processes, and `run()` already does the check.
 
+```php
+use Milon\Fuse\CircuitOpenException;
+
+try {
+    $fuse->run(fn () => $client->charge($amount));
+} catch (CircuitOpenException $exception) {
+    logger()->warning('circuit open', [
+        'key' => $exception->storageKey,
+        'retry_after' => $exception->retryAfterSeconds,
+    ]);
+}
+```
+
+In tests, prefer [Testing](13-testing.html) helpers (`assertCircuitOpen`, `forceCircuitOpen`) over reading `state()` by hand.
+
 ## Open it for a dependency you know is down
 
 ```php
