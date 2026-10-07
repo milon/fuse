@@ -20,7 +20,7 @@ That one command is the whole install. Use `Fuse::for()` with a store. [ArraySto
 composer require milon/fuse saloonphp/saloon
 ```
 
-Saloon 3 and 4 are both accepted (`^3.0|^4.0`). Add the `HasCircuitBreaker` trait to a connector and return a store from `resolveCircuitBreakerStore()`. The full connector is in [Saloon](09-saloon.html).
+Saloon 3 and 4 are both accepted (`^3.0|^4.0`). Add the `HasCircuitBreaker` trait to a connector and return a store from `resolveCircuitBreakerStore()` when Laravel is not in the picture. The full connector is in [Saloon](09-saloon.html).
 
 ## With Laravel, without Saloon
 
@@ -48,7 +48,7 @@ The cache store works with no migration. The database store needs one. See [Data
 composer require milon/fuse saloonphp/saloon
 ```
 
-The service provider still owns the shared store. The Saloon connector resolves that store from the container. The complete connector is in [Laravel and Saloon](10-laravel-and-saloon.html).
+The service provider still owns the shared store. A Saloon connector only needs `HasCircuitBreaker`; store and config come from the container. The complete connector is in [Laravel and Saloon](10-laravel-and-saloon.html).
 
 ## What Composer installs for you
 

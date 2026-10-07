@@ -7,9 +7,12 @@ namespace Milon\Fuse\Saloon\Traits;
 use Milon\Fuse\CircuitBreaker;
 use Milon\Fuse\CircuitBreakerConfig;
 use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\Laravel\FuseManager;
 use Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation;
 use Milon\Fuse\Saloon\Middleware\CircuitBreakerMiddleware;
+use Milon\Fuse\Support\CircuitName;
 use Milon\Fuse\Support\FailureClassifier;
+use RuntimeException;
 use Saloon\Http\PendingRequest;
 
 trait HasCircuitBreaker
@@ -61,14 +64,17 @@ trait HasCircuitBreaker
 
     protected function resolveCircuitBreakerName(): string
     {
-        $class = static::class;
-        $position = strrpos($class, '\\');
-
-        return $position === false ? $class : substr($class, $position + 1);
+        return CircuitName::fromConnectorClass(static::class);
     }
 
     protected function resolveCircuitBreakerConfig(): CircuitBreakerConfig
     {
+        $manager = $this->resolveLaravelFuseManager();
+
+        if ($manager !== null) {
+            return $manager->configFor($this->resolveCircuitBreakerName());
+        }
+
         return CircuitBreakerConfig::defaults();
     }
 
@@ -77,5 +83,42 @@ trait HasCircuitBreaker
         return null;
     }
 
-    abstract protected function resolveCircuitBreakerStore(): CircuitBreakerStore;
+    protected function resolveCircuitBreakerStore(): CircuitBreakerStore
+    {
+        $manager = $this->resolveLaravelFuseManager();
+
+        if ($manager !== null) {
+            return $manager->store();
+        }
+
+        throw new RuntimeException(
+            'No circuit breaker store is available. Override resolveCircuitBreakerStore() on '
+            .static::class
+            .' or use Laravel with Milon\\Fuse\\Laravel\\FuseServiceProvider registered.',
+        );
+    }
+
+    protected function resolveLaravelFuseManager(): ?FuseManager
+    {
+        if (! class_exists(FuseManager::class)) {
+            return null;
+        }
+
+        $containerClass = 'Illuminate\\Container\\Container';
+
+        if (! class_exists($containerClass)) {
+            return null;
+        }
+
+        /** @var \Illuminate\Container\Container $container */
+        $container = $containerClass::getInstance();
+
+        if (! $container->bound(FuseManager::class)) {
+            return null;
+        }
+
+        $manager = $container->make(FuseManager::class);
+
+        return $manager instanceof FuseManager ? $manager : null;
+    }
 }

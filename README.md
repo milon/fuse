@@ -132,11 +132,10 @@ FUSE_STORE=database
 
 Add `HasCircuitBreaker` to a connector. Each request boots the breaker before it is sent. A counted HTTP status or a fatal transport error records a failure. An open circuit throws `CircuitOpenException` and the request is not sent.
 
+In Laravel, the trait is enough: store and config come from `FuseManager`.
+
 ```php
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
-use Milon\Fuse\CircuitBreakerConfig;
-use Milon\Fuse\Contracts\CircuitBreakerStore;
-use Milon\Fuse\Stores\ArrayStore; // tests only; production should use a shared store
 use Saloon\Http\Connector;
 
 class ExampleConnector extends Connector
@@ -147,23 +146,10 @@ class ExampleConnector extends Connector
     {
         return 'https://api.example.com';
     }
-
-    protected function resolveCircuitBreakerName(): string
-    {
-        return 'example';
-    }
-
-    protected function resolveCircuitBreakerConfig(): CircuitBreakerConfig
-    {
-        return CircuitBreakerConfig::defaults();
-    }
-
-    protected function resolveCircuitBreakerStore(): CircuitBreakerStore
-    {
-        return new ArrayStore();
-    }
 }
 ```
+
+Without Laravel, override `resolveCircuitBreakerStore()` (and optionally name or config). The default circuit name strips a trailing `Connector` and kebab-cases the rest (`BillingConnector` → `billing`).
 
 Implement `Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation` on a request to give that operation its own circuit. `resolveCircuitBreakerOperation()` becomes the `operation` segment of the storage key.
 
@@ -198,23 +184,7 @@ Set `FUSE_STORE=database` to use the database store after the migration has run.
 
 `FuseManager::for('billing-sdk')` and `configFor('billing-sdk')` pick up that override.
 
-A Saloon connector can take the same store and config from the container:
-
-```php
-use Milon\Fuse\CircuitBreakerConfig;
-use Milon\Fuse\Contracts\CircuitBreakerStore;
-use Milon\Fuse\Laravel\FuseManager;
-
-protected function resolveCircuitBreakerStore(): CircuitBreakerStore
-{
-    return app(CircuitBreakerStore::class);
-}
-
-protected function resolveCircuitBreakerConfig(): CircuitBreakerConfig
-{
-    return app(FuseManager::class)->configFor($this->resolveCircuitBreakerName());
-}
-```
+A Saloon connector that uses `HasCircuitBreaker` picks up the same store and named config automatically. The derived name (`BillingConnector` → `billing`) is what `breakers.billing` matches.
 
 If package discovery is disabled, register `Milon\Fuse\Laravel\FuseServiceProvider` yourself.
 

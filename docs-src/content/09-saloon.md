@@ -12,7 +12,7 @@ composer require milon/fuse saloonphp/saloon
 
 ## A connector
 
-`resolveCircuitBreakerStore()` is abstract. The other methods have defaults: the circuit name is the connector's short class name, the config is `CircuitBreakerConfig::defaults()`, and there is no app segment.
+Without Laravel you must return a store. The other methods have defaults: the circuit name is derived from the class (`BillingConnector` → `billing`), the config is `CircuitBreakerConfig::defaults()`, and there is no app segment. In Laravel, skip the store method — see [Laravel and Saloon](10-laravel-and-saloon.html).
 
 ```php
 use Milon\Fuse\CircuitBreakerConfig;

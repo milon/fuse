@@ -6,10 +6,9 @@ namespace Milon\Fuse\Tests\Feature;
 
 use Illuminate\Cache\ArrayStore as CacheArrayStore;
 use Illuminate\Cache\Repository as CacheRepository;
-use Milon\Fuse\CircuitBreakerConfig;
+use Illuminate\Container\Container;
 use Milon\Fuse\CircuitOpenException;
 use Milon\Fuse\CircuitState;
-use Milon\Fuse\Contracts\CircuitBreakerStore;
 use Milon\Fuse\Laravel\FuseManager;
 use Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation;
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
@@ -24,8 +23,25 @@ use Saloon\Http\Request;
 
 final class LaravelSaloonIntegrationTest extends TestCase
 {
+    private Container $container;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->container = new Container;
+        Container::setInstance($this->container);
+    }
+
+    protected function tearDown(): void
+    {
+        Container::setInstance(null);
+
+        parent::tearDown();
+    }
+
     #[Test]
-    public function a_saloon_connector_uses_the_laravel_cache_and_named_config(): void
+    public function a_saloon_connector_uses_the_laravel_store_and_named_config_from_the_trait_alone(): void
     {
         $manager = new FuseManager(new LaravelCacheStore(new CacheRepository(new CacheArrayStore)), [
             'failure_threshold' => 8,
@@ -36,11 +52,11 @@ final class LaravelSaloonIntegrationTest extends TestCase
             ],
         ]);
 
-        $connector = new class($manager) extends Connector
+        $this->container->instance(FuseManager::class, $manager);
+
+        $connector = new class extends Connector
         {
             use HasCircuitBreaker;
-
-            public function __construct(private FuseManager $manager) {}
 
             public function resolveBaseUrl(): string
             {
@@ -50,16 +66,6 @@ final class LaravelSaloonIntegrationTest extends TestCase
             protected function resolveCircuitBreakerName(): string
             {
                 return 'billing';
-            }
-
-            protected function resolveCircuitBreakerConfig(): CircuitBreakerConfig
-            {
-                return $this->manager->configFor($this->resolveCircuitBreakerName());
-            }
-
-            protected function resolveCircuitBreakerStore(): CircuitBreakerStore
-            {
-                return $this->manager->store();
             }
         };
 
@@ -91,6 +97,39 @@ final class LaravelSaloonIntegrationTest extends TestCase
         $this->assertSame('fuse:billing:charge', $breaker->storageKey());
 
         $this->expectException(CircuitOpenException::class);
+        $connector->send($request);
+    }
+
+    #[Test]
+    public function a_saloon_connector_without_a_store_explains_how_to_fix_it(): void
+    {
+        $connector = new class extends Connector
+        {
+            use HasCircuitBreaker;
+
+            public function resolveBaseUrl(): string
+            {
+                return 'https://example.test';
+            }
+        };
+
+        $connector->withMockClient(new MockClient([
+            MockResponse::make(body: 'ok', status: 200),
+        ]));
+
+        $request = new class extends Request
+        {
+            protected Method $method = Method::GET;
+
+            public function resolveEndpoint(): string
+            {
+                return '/ping';
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('No circuit breaker store is available');
+
         $connector->send($request);
     }
 }

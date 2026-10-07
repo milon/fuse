@@ -305,16 +305,13 @@ class ChargeRequest extends Request implements HasCircuitBreakerOperation
 $response = (new BillingConnector($cache))->send(new ChargeRequest);
 ```
 
-The default circuit name is the connector's short class name, so this one is `BillingConnector`. Eight responses with status 503 (the default threshold) open `fuse:BillingConnector:charge`. The ninth `send()` throws `CircuitOpenException` and does not leave the machine. A later 200 after the cooldown is a probe.
+The default circuit name is derived from the class, so this one is `billing`. Eight responses with status 503 (the default threshold) open `fuse:billing:charge`. The ninth `send()` throws `CircuitOpenException` and does not leave the machine. A later 200 after the cooldown is a probe.
 
 ## 11. Laravel and Saloon together
 
-`FUSE_STORE=cache` or `database`. The connector uses the bound store:
+`FUSE_STORE=cache` or `database`. Add the trait; the bound store and named config are resolved for you:
 
 ```php
-use Milon\Fuse\CircuitBreakerConfig;
-use Milon\Fuse\Contracts\CircuitBreakerStore;
-use Milon\Fuse\Laravel\FuseManager;
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
 use Saloon\Http\Connector;
 
@@ -325,21 +322,6 @@ class BillingConnector extends Connector
     public function resolveBaseUrl(): string
     {
         return 'https://billing.example.com';
-    }
-
-    protected function resolveCircuitBreakerStore(): CircuitBreakerStore
-    {
-        return app(CircuitBreakerStore::class);
-    }
-
-    protected function resolveCircuitBreakerName(): string
-    {
-        return 'billing';
-    }
-
-    protected function resolveCircuitBreakerConfig(): CircuitBreakerConfig
-    {
-        return app(FuseManager::class)->configFor('billing');
     }
 }
 ```

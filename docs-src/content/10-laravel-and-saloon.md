@@ -12,12 +12,9 @@ composer require milon/fuse saloonphp/saloon
 
 ## Connector
 
-Resolve the store and the config from `FuseManager`. The manager already applied `breakers.billing` if you defined it.
+Add the trait. That is the whole connector-side setup. Store and config come from `FuseManager`, including any `breakers.billing` override.
 
 ```php
-use Milon\Fuse\CircuitBreakerConfig;
-use Milon\Fuse\Contracts\CircuitBreakerStore;
-use Milon\Fuse\Laravel\FuseManager;
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
 use Saloon\Http\Connector;
 
@@ -29,25 +26,12 @@ class BillingConnector extends Connector
     {
         return 'https://billing.example.com';
     }
-
-    protected function resolveCircuitBreakerStore(): CircuitBreakerStore
-    {
-        return app(CircuitBreakerStore::class);
-    }
-
-    protected function resolveCircuitBreakerName(): string
-    {
-        return 'billing';
-    }
-
-    protected function resolveCircuitBreakerConfig(): CircuitBreakerConfig
-    {
-        return app(FuseManager::class)->configFor('billing');
-    }
 }
 ```
 
-`configFor('billing')` returns the merged `CircuitBreakerConfig`. A request that implements `HasCircuitBreakerOperation` still adds its operation to the key, so the config numbers are the billing numbers and the storage key can still be `fuse:billing:charge`.
+The default name strips a trailing `Connector` and kebab-cases the rest (`BillingConnector` → `billing`, `BillingSdkConnector` → `billing-sdk`). That name is what `breakers.billing` matches. Override `resolveCircuitBreakerName()` only when you want a different key.
+
+A request that implements `HasCircuitBreakerOperation` still adds its operation to the key, so the config numbers are the billing numbers and the storage key can still be `fuse:billing:charge`.
 
 ## Request
 

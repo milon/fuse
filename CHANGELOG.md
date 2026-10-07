@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Saloon `HasCircuitBreaker` resolves store and config from Laravel's `FuseManager` when the service provider is registered, so a connector only needs the trait (optionally a custom circuit name)
+- Default Saloon circuit names strip a trailing `Connector` and kebab-case the rest (`BillingConnector` → `billing`)
+
 ## 1.0.0 - 2026-10-02
 
 First stable release of the circuit breaker for PHP 8.2+.
