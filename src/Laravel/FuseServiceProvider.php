@@ -11,6 +11,8 @@ use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Support\ServiceProvider;
 use Milon\Fuse\Contracts\CircuitBreakerStore;
 use Milon\Fuse\Contracts\CircuitEventDispatcher;
+use Milon\Fuse\Laravel\Commands\FuseResetCommand;
+use Milon\Fuse\Laravel\Commands\FuseStatusCommand;
 use Milon\Fuse\Stores\DatabaseStore;
 use Milon\Fuse\Stores\LaravelCacheStore;
 use RuntimeException;
@@ -31,6 +33,13 @@ class FuseServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
+            if ($this->artisanAvailable()) {
+                $this->commands([
+                    FuseStatusCommand::class,
+                    FuseResetCommand::class,
+                ]);
+            }
+
             $this->publishes([
                 $this->packageConfigPath() => $this->app->configPath('fuse.php'),
             ], 'fuse-config');
@@ -39,6 +48,12 @@ class FuseServiceProvider extends ServiceProvider
                 dirname(__DIR__, 2).'/database/migrations' => $this->app->databasePath('migrations'),
             ], 'fuse-migrations');
         }
+    }
+
+    private function artisanAvailable(): bool
+    {
+        return $this->app->bound('Illuminate\\Contracts\\Console\\Kernel')
+            || $this->app->bound('artisan');
     }
 
     private function makeStore(): CircuitBreakerStore

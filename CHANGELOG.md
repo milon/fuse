@@ -6,6 +6,7 @@
 - Default Saloon circuit names strip a trailing `Connector` and kebab-case the rest (`BillingConnector` → `billing`)
 - Laravel `Fuse` facade and `fuse()` helper for resolving named circuits
 - Circuit state-change events (`CircuitOpened`, `CircuitClosed`, `CircuitHalfOpened`) with a Laravel dispatcher
+- Artisan `fuse:status` and `fuse:reset` commands
 
 ## 1.0.0 - 2026-10-02
 

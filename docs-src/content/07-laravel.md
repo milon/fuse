@@ -120,6 +120,20 @@ Event::listen(CircuitOpened::class, function (CircuitOpened $event): void {
 
 Saloon connectors that use `HasCircuitBreaker` share the same dispatcher. Outside Laravel, pass a `CircuitEventDispatcher` into `Fuse::for(..., events: $dispatcher)`.
 
+## Artisan commands
+
+Inspect and reset circuits from the console:
+
+```shell
+php artisan fuse:status
+php artisan fuse:status billing
+php artisan fuse:status billing --operation=charge
+php artisan fuse:reset billing --operation=charge
+php artisan fuse:reset billing --force
+```
+
+`fuse:status` without a name lists every entry under `config('fuse.breakers')`. Pass a name to inspect any circuit, including ones that are not in that list. `fuse:reset` deletes the stored snapshot (same as `breaker()->reset()`); use `--force` to skip the confirmation prompt.
+
 ## When discovery is off
 
 Add the provider to `bootstrap/providers.php` (Laravel 11+) or `config/app.php`:

@@ -30,6 +30,28 @@ final class FuseManager
         return $this->events;
     }
 
+    /**
+     * @return list<string>
+     */
+    public function breakerNames(): array
+    {
+        $breakers = $this->settings['breakers'] ?? null;
+
+        if (! is_array($breakers)) {
+            return [];
+        }
+
+        $names = [];
+
+        foreach ($breakers as $name => $overrides) {
+            if (is_string($name) && $name !== '' && is_array($overrides)) {
+                $names[] = $name;
+            }
+        }
+
+        return $names;
+    }
+
     public function configFor(?string $name = null): CircuitBreakerConfig
     {
         return CircuitBreakerConfig::fromArray($this->settingsFor($name));

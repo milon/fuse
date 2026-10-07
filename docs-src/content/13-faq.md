@@ -32,6 +32,10 @@ The classifier looks at the class name and the message. `card declined` does not
 
 Yes. Pass `operation: 'charge'` and `operation: 'refund'`, or implement `HasCircuitBreakerOperation` on the Saloon request. Different operations are different keys.
 
+## How do I inspect or reset a circuit in production?
+
+`php artisan fuse:status billing` and `php artisan fuse:reset billing`. See [Laravel](07-laravel.html).
+
 ## Can I listen when a circuit opens?
 
 Yes. In Laravel, listen for `Milon\Fuse\Events\CircuitOpened` (also `CircuitClosed` and `CircuitHalfOpened`). See [Laravel](07-laravel.html). Outside Laravel, pass a `CircuitEventDispatcher` to `Fuse::for()`.

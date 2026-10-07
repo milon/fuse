@@ -186,6 +186,11 @@ Set `FUSE_STORE=database` to use the database store after the migration has run.
 
 Listen for `Milon\Fuse\Events\CircuitOpened` (and `CircuitClosed` / `CircuitHalfOpened`) when a circuit changes state.
 
+```bash
+php artisan fuse:status billing
+php artisan fuse:reset billing --force
+```
+
 A Saloon connector that uses `HasCircuitBreaker` picks up the same store and named config automatically. The derived name (`BillingConnector` → `billing`) is what `breakers.billing` matches.
 
 If package discovery is disabled, register `Milon\Fuse\Laravel\FuseServiceProvider` yourself.
