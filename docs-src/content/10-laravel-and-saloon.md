@@ -31,27 +31,24 @@ class BillingConnector extends Connector
 
 The default name strips a trailing `Connector` and kebab-cases the rest (`BillingConnector` → `billing`, `BillingSdkConnector` → `billing-sdk`). That name is what `breakers.billing` matches. Override `resolveCircuitBreakerName()` only when you want a different key.
 
-A request that implements `HasCircuitBreakerOperation` still adds its operation to the key, so the config numbers are the billing numbers and the storage key can still be `fuse:billing:charge`.
+A request that uses `HasCircuitBreakerOperation` still adds its operation to the key, so the config numbers are the billing numbers and the storage key can still be `fuse:billing:charge`.
 
 ## Request
 
 ```php
-use Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation;
+use Milon\Fuse\Saloon\Traits\HasCircuitBreakerOperation;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
 
-class ChargeRequest extends Request implements HasCircuitBreakerOperation
+class ChargeRequest extends Request
 {
+    use HasCircuitBreakerOperation;
+
     protected Method $method = Method::POST;
 
     public function resolveEndpoint(): string
     {
         return '/charge';
-    }
-
-    public function resolveCircuitBreakerOperation(): string
-    {
-        return 'charge';
     }
 }
 ```

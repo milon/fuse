@@ -263,8 +263,8 @@ select `key`, payload, expires_at from fuse_circuits;
 
 ```php
 use Milon\Fuse\Contracts\CircuitBreakerStore;
-use Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation;
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
+use Milon\Fuse\Saloon\Traits\HasCircuitBreakerOperation;
 use Milon\Fuse\Stores\Psr16Store;
 use Saloon\Enums\Method;
 use Saloon\Http\Connector;
@@ -287,18 +287,15 @@ class BillingConnector extends Connector
     }
 }
 
-class ChargeRequest extends Request implements HasCircuitBreakerOperation
+class ChargeRequest extends Request
 {
+    use HasCircuitBreakerOperation;
+
     protected Method $method = Method::POST;
 
     public function resolveEndpoint(): string
     {
         return '/charge';
-    }
-
-    public function resolveCircuitBreakerOperation(): string
-    {
-        return 'charge';
     }
 }
 

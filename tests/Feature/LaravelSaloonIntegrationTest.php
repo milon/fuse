@@ -10,8 +10,8 @@ use Illuminate\Container\Container;
 use Milon\Fuse\CircuitOpenException;
 use Milon\Fuse\CircuitState;
 use Milon\Fuse\Laravel\FuseManager;
-use Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation;
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
+use Milon\Fuse\Saloon\Traits\HasCircuitBreakerOperation;
 use Milon\Fuse\Stores\LaravelCacheStore;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -74,18 +74,20 @@ final class LaravelSaloonIntegrationTest extends TestCase
             MockResponse::make(body: 'ok', status: 200),
         ]));
 
-        $request = new class extends Request implements HasCircuitBreakerOperation
+        $request = new class extends Request
         {
+            use HasCircuitBreakerOperation;
+
             protected Method $method = Method::GET;
+
+            public function __construct()
+            {
+                $this->circuitBreakerOperation = 'charge';
+            }
 
             public function resolveEndpoint(): string
             {
                 return '/charge';
-            }
-
-            public function resolveCircuitBreakerOperation(): string
-            {
-                return 'charge';
             }
         };
 

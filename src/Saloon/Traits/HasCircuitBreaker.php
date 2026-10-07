@@ -40,6 +40,12 @@ trait HasCircuitBreaker
 
         if ($request instanceof HasCircuitBreakerOperation) {
             $operation = $request->resolveCircuitBreakerOperation();
+        } elseif (method_exists($request, 'resolveCircuitBreakerOperation')) {
+            $resolved = $request->resolveCircuitBreakerOperation();
+
+            if (is_string($resolved) && $resolved !== '') {
+                $operation = $resolved;
+            }
         }
 
         $this->fuseCircuitBreaker = new CircuitBreaker(

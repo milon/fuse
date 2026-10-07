@@ -81,30 +81,29 @@ try {
 
 ## A separate circuit per request
 
-Implement `HasCircuitBreakerOperation` on the request. The connector does not need to change.
+Add the request trait. The connector does not need to change. The operation defaults to the class name with a trailing `Request` stripped (`ChargeRequest` → `charge`).
 
 ```php
-use Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation;
+use Milon\Fuse\Saloon\Traits\HasCircuitBreakerOperation;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
 
-class ChargeRequest extends Request implements HasCircuitBreakerOperation
+class ChargeRequest extends Request
 {
+    use HasCircuitBreakerOperation;
+
     protected Method $method = Method::POST;
 
     public function resolveEndpoint(): string
     {
         return '/charge';
     }
-
-    public function resolveCircuitBreakerOperation(): string
-    {
-        return 'charge';
-    }
 }
 ```
 
-`ChargeRequest` uses `fuse:punt:billing-sdk:charge`. A `RefundRequest` that returns `refund` uses a different key. A request that does not implement the interface uses the connector circuit, with no operation segment.
+Override the name with `protected string $circuitBreakerOperation = 'checkout';` when the derived name is wrong. The older `HasCircuitBreakerOperation` interface still works if you prefer a custom `resolveCircuitBreakerOperation()` method.
+
+`ChargeRequest` uses `fuse:punt:billing-sdk:charge`. A `RefundRequest` uses a different key. A request without the trait or interface uses the connector circuit, with no operation segment.
 
 ## Counted responses
 

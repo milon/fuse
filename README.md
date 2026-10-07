@@ -151,7 +151,7 @@ class ExampleConnector extends Connector
 
 Without Laravel, override `resolveCircuitBreakerStore()` (and optionally name or config). The default circuit name strips a trailing `Connector` and kebab-cases the rest (`BillingConnector` → `billing`).
 
-Implement `Milon\Fuse\Saloon\Contracts\HasCircuitBreakerOperation` on a request to give that operation its own circuit. `resolveCircuitBreakerOperation()` becomes the `operation` segment of the storage key.
+Add `Milon\Fuse\Saloon\Traits\HasCircuitBreakerOperation` on a request to give that operation its own circuit (`ChargeRequest` → `charge`). Override `$circuitBreakerOperation` when you need a different segment.
 
 ## Laravel
 

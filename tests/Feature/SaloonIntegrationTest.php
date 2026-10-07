@@ -8,7 +8,9 @@ use Milon\Fuse\CircuitBreakerConfig;
 use Milon\Fuse\CircuitOpenException;
 use Milon\Fuse\CircuitState;
 use Milon\Fuse\Contracts\CircuitBreakerStore;
+use Milon\Fuse\CircuitBreaker;
 use Milon\Fuse\Saloon\Traits\HasCircuitBreaker;
+use Milon\Fuse\Saloon\Traits\HasCircuitBreakerOperation;
 use Milon\Fuse\Stores\ArrayStore;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -71,7 +73,7 @@ final class SaloonIntegrationTest extends TestCase
         $connector->send($request);
         $connector->send($request);
 
-        $breaker = new \Milon\Fuse\CircuitBreaker(
+        $breaker = new CircuitBreaker(
             name: 'example',
             store: $store,
             config: new CircuitBreakerConfig(failureThreshold: 2),
@@ -80,6 +82,55 @@ final class SaloonIntegrationTest extends TestCase
 
         $this->expectException(CircuitOpenException::class);
         $connector->send($request);
+    }
+
+    #[Test]
+    public function saloon_request_trait_derives_the_operation_from_the_class_name(): void
+    {
+        $store = new ArrayStore;
+        $connector = new class($store) extends Connector
+        {
+            use HasCircuitBreaker;
+
+            public function __construct(private CircuitBreakerStore $store) {}
+
+            public function resolveBaseUrl(): string
+            {
+                return 'https://example.test';
+            }
+
+            protected function resolveCircuitBreakerName(): string
+            {
+                return 'billing';
+            }
+
+            protected function resolveCircuitBreakerConfig(): CircuitBreakerConfig
+            {
+                return new CircuitBreakerConfig(failureThreshold: 1);
+            }
+
+            protected function resolveCircuitBreakerStore(): CircuitBreakerStore
+            {
+                return $this->store;
+            }
+        };
+
+        $connector->withMockClient(new MockClient([
+            MockResponse::make(body: 'down', status: 503),
+            MockResponse::make(body: 'ok', status: 200),
+        ]));
+
+        $connector->send(new ChargeRequest);
+
+        $breaker = new CircuitBreaker(
+            name: 'billing',
+            store: $store,
+            config: new CircuitBreakerConfig(failureThreshold: 1),
+            operation: 'charge',
+        );
+
+        $this->assertSame(CircuitState::Open, $breaker->state());
+        $this->assertSame('fuse:billing:charge', $breaker->storageKey());
     }
 
     #[Test]
@@ -144,11 +195,23 @@ final class SaloonIntegrationTest extends TestCase
         } catch (\Saloon\Exceptions\Request\FatalRequestException) {
         }
 
-        $breaker = new \Milon\Fuse\CircuitBreaker(
+        $breaker = new CircuitBreaker(
             name: 'example-fatal',
             store: $store,
             config: new CircuitBreakerConfig(failureThreshold: 2),
         );
         $this->assertSame(CircuitState::Open, $breaker->state());
+    }
+}
+
+final class ChargeRequest extends Request
+{
+    use HasCircuitBreakerOperation;
+
+    protected Method $method = Method::POST;
+
+    public function resolveEndpoint(): string
+    {
+        return '/charge';
     }
 }

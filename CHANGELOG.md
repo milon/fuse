@@ -8,6 +8,7 @@
 - Circuit state-change events (`CircuitOpened`, `CircuitClosed`, `CircuitHalfOpened`) with a Laravel dispatcher
 - Artisan `fuse:status` and `fuse:reset` commands
 - `CircuitOpenException` includes storage key, operation, app, and approximate `retryAfterSeconds`
+- Saloon request trait `HasCircuitBreakerOperation` (`ChargeRequest` → `charge`; optional `$circuitBreakerOperation`)
 
 ## 1.0.0 - 2026-10-02
 

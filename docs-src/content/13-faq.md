@@ -30,7 +30,7 @@ The classifier looks at the class name and the message. `card declined` does not
 
 ## Can charge and refund fail independently?
 
-Yes. Pass `operation: 'charge'` and `operation: 'refund'`, or implement `HasCircuitBreakerOperation` on the Saloon request. Different operations are different keys.
+Yes. Pass `operation: 'charge'` and `operation: 'refund'`, or add the `HasCircuitBreakerOperation` trait on the Saloon request. Different operations are different keys.
 
 ## How do I inspect or reset a circuit in production?
 

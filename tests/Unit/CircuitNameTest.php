@@ -18,6 +18,13 @@ final class CircuitNameTest extends TestCase
         $this->assertSame($expected, CircuitName::fromConnectorClass($class));
     }
 
+    #[Test]
+    #[DataProvider('requestClasses')]
+    public function it_derives_kebab_names_from_request_classes(string $class, string $expected): void
+    {
+        $this->assertSame($expected, CircuitName::fromRequestClass($class));
+    }
+
     /**
      * @return array<string, array{0: string, 1: string}>
      */
@@ -28,6 +35,19 @@ final class CircuitNameTest extends TestCase
             'compound name' => ['BillingSdkConnector', 'billing-sdk'],
             'no connector suffix' => ['App\\Clients\\SearchApi', 'search-api'],
             'connector alone' => ['Connector', 'connector'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: string}>
+     */
+    public static function requestClasses(): array
+    {
+        return [
+            'charge request' => ['App\\Http\\Integrations\\ChargeRequest', 'charge'],
+            'compound name' => ['CreateInvoiceRequest', 'create-invoice'],
+            'no request suffix' => ['App\\Http\\Charge', 'charge'],
+            'request alone' => ['Request', 'request'],
         ];
     }
 }
