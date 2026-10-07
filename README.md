@@ -44,7 +44,7 @@ flowchart TD
 
 A call is **allowed** when the circuit is closed, or when it is half-open and a probe slot is free. The first call after the cooldown also turns an open circuit half-open. While closed, a success clears recorded failures, and a counted failure below the threshold is remembered. While half-open, the circuit closes after enough successful probes, and one counted failure re-opens it. An ignored error releases a reserved probe slot without changing the state.
 
-While the circuit is **open**, `run()` throws `Milon\Fuse\CircuitOpenException` and does not invoke your callable. That is the point: a down dependency is not called again until the cooldown ends.
+While the circuit is **open**, `run()` throws `Milon\Fuse\CircuitOpenException` and does not invoke your callable. That is the point: a down dependency is not called again until the cooldown ends. The exception carries `storageKey` and `retryAfterSeconds` for logs and HTTP `Retry-After` headers.
 
 ## Terminology
 

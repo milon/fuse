@@ -18,7 +18,10 @@ $breaker = $fuse->breaker();
 | --- | --- |
 | `name()` | The name you passed to `Fuse::for()`, such as `billing-sdk` |
 | `storageKey()` | The full key, such as `fuse:punt:billing:charge` |
+| `operation()` / `app()` | The optional key segments |
 | `state()` | `CircuitState::Closed`, `Open`, or `HalfOpen` |
+| `secondsUntilRetry()` | Seconds until an open circuit may probe, `0` when the cooldown has elapsed, `null` when closed |
+| `openException()` | A `CircuitOpenException` with name, key, and retry-after filled in |
 | `allowRequest()` | Whether the next call may run. Also moves an open circuit to half-open when the cooldown is over, and reserves a probe slot |
 
 `state()` reads the snapshot. It does not change it. `allowRequest()` can change it: when the open duration has elapsed, the call that checks is the one that becomes the probe.

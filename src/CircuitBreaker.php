@@ -10,6 +10,7 @@ use Milon\Fuse\Events\CircuitClosed;
 use Milon\Fuse\Events\CircuitHalfOpened;
 use Milon\Fuse\Events\CircuitOpened;
 use Milon\Fuse\Support\KeyGenerator;
+use Throwable;
 
 final class CircuitBreaker
 {
@@ -43,9 +44,50 @@ final class CircuitBreaker
         return $this->storageKey;
     }
 
+    public function operation(): ?string
+    {
+        return $this->operation;
+    }
+
+    public function app(): ?string
+    {
+        return $this->app;
+    }
+
     public function state(): CircuitState
     {
         return $this->hydrate()->state;
+    }
+
+    /**
+     * Seconds until an open circuit may accept a probe, or 0 when the cooldown
+     * has already elapsed (including half-open with no free probe slot).
+     * Null when the circuit is closed.
+     */
+    public function secondsUntilRetry(): ?int
+    {
+        $snapshot = $this->hydrate();
+
+        return match ($snapshot->state) {
+            CircuitState::Closed => null,
+            CircuitState::HalfOpen => 0,
+            CircuitState::Open => max(
+                0,
+                ($snapshot->openedAt ?? $this->clock->now()) + $this->config->openSeconds - $this->clock->now(),
+            ),
+        };
+    }
+
+    public function openException(?Throwable $previous = null): CircuitOpenException
+    {
+        return new CircuitOpenException(
+            circuitName: $this->name,
+            previous: $previous,
+            storageKey: $this->storageKey,
+            retryAfterSeconds: $this->secondsUntilRetry(),
+            operation: $this->operation,
+            app: $this->app,
+        );
     }
 
     public function allowRequest(): bool

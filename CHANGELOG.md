@@ -7,6 +7,7 @@
 - Laravel `Fuse` facade and `fuse()` helper for resolving named circuits
 - Circuit state-change events (`CircuitOpened`, `CircuitClosed`, `CircuitHalfOpened`) with a Laravel dispatcher
 - Artisan `fuse:status` and `fuse:reset` commands
+- `CircuitOpenException` includes storage key, operation, app, and approximate `retryAfterSeconds`
 
 ## 1.0.0 - 2026-10-02
 

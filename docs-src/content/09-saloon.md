@@ -75,7 +75,7 @@ use Milon\Fuse\CircuitOpenException;
 try {
     $response = $connector->send(new ChargeRequest);
 } catch (CircuitOpenException $exception) {
-    // Nothing was sent. $exception->circuitName is the connector name.
+    // Nothing was sent. Use $exception->storageKey and $exception->retryAfterSeconds.
 }
 ```
 

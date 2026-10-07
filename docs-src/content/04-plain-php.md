@@ -35,12 +35,13 @@ $fuse = Fuse::for('billing-sdk', new ArrayStore);
 try {
     $invoice = $fuse->run(fn () => $this->billing->charge($amount));
 } catch (CircuitOpenException $exception) {
-    // The callable did not run. $exception->circuitName is "billing-sdk".
+    // The callable did not run.
+    // $exception->circuitName, storageKey, retryAfterSeconds, operation, app
     return $this->fallback();
 }
 ```
 
-`CircuitOpenException` extends `RuntimeException`. The message is `Circuit [billing-sdk] is open`.
+`CircuitOpenException` includes the storage key and an approximate `retryAfterSeconds` until the circuit may probe again. A typical message looks like `Circuit [billing-sdk] is open; key [fuse:billing-sdk]; retry after approximately 30s`.
 
 ## A threshold that opens on the next failure
 

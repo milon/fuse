@@ -64,7 +64,7 @@ final class Fuse
     public function run(callable $execute, ?callable $isFailure = null, ?callable $isSuccess = null): mixed
     {
         if (! $this->breaker->allowRequest()) {
-            throw new CircuitOpenException($this->breaker->name());
+            throw $this->breaker->openException();
         }
 
         try {

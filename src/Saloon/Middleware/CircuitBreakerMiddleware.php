@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Milon\Fuse\Saloon\Middleware;
 
 use Milon\Fuse\CircuitBreaker;
-use Milon\Fuse\CircuitOpenException;
 use Milon\Fuse\Support\FailureClassifier;
 use Saloon\Exceptions\Request\FatalRequestException;
 use Saloon\Http\PendingRequest;
@@ -28,7 +27,7 @@ final class CircuitBreakerMiddleware
     public function __invoke(PendingRequest $pendingRequest): void
     {
         if (! $this->breaker->allowRequest()) {
-            throw new CircuitOpenException($this->breaker->name());
+            throw $this->breaker->openException();
         }
 
         $pendingRequest->middleware()->onResponse(
