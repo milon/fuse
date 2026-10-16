@@ -197,7 +197,7 @@ A thrown connect timeout records a failure through the fatal middleware and then
 
 ## Tests and mocks
 
-See [Testing](13-testing.html) for `FuseMockClient` and `InteractsWithFuse`. Short version: Saloon's mock middleware runs before Fuse, so pad a spare mock for open-circuit rejects — or let `FuseMockClient::mock()` do it:
+See [Testing](14-testing.html) for `FuseMockClient` and `InteractsWithFuse`. Short version: Saloon's mock middleware runs before Fuse, so pad a spare mock for open-circuit rejects — or let `FuseMockClient::mock()` do it:
 
 ```php
 use Milon\Fuse\CircuitOpenException;

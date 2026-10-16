@@ -49,7 +49,7 @@ try {
 }
 ```
 
-In tests, prefer [Testing](13-testing.html) helpers (`assertCircuitOpen`, `forceCircuitOpen`) over reading `state()` by hand.
+In tests, prefer [Testing](14-testing.html) helpers (`assertCircuitOpen`, `forceCircuitOpen`) over reading `state()` by hand. State changes from `forceOpen()`, `forceClosed()`, and `reset()` also dispatch [events](13-events.html) when a dispatcher is configured.
 
 ## Open it for a dependency you know is down
 

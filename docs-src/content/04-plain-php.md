@@ -133,55 +133,20 @@ Laravel's `FuseManager` extends this class. Saloon connectors resolve a containe
 
 ## Listening for state changes
 
-Circuits dispatch plain event objects when the state changes:
-
-| Event | When |
-| --- | --- |
-| `CircuitOpened` | Closed or half-open → open |
-| `CircuitHalfOpened` | Open → half-open |
-| `CircuitClosed` | Open or half-open → closed (including `reset()`) |
-
-Each event has `name`, `storageKey`, `operation`, `app`, `previous` (`CircuitState`), and `reason` (`failure_threshold`, `probe_failed`, `probes_succeeded`, `cooldown_elapsed`, `forced`, `reset`, …).
-
-### Callable dispatcher
+Pass a dispatcher as `events:` on `Fuse::for()` or `FuseFactory`. Full details — event classes, reasons, callable and PSR-14 dispatchers — are in [Events](13-events.html).
 
 ```php
 use Milon\Fuse\Events\CallableCircuitEventDispatcher;
-use Milon\Fuse\Events\CircuitClosed;
 use Milon\Fuse\Events\CircuitOpened;
 use Milon\Fuse\Fuse;
 
 $events = (new CallableCircuitEventDispatcher)
     ->listenFor(CircuitOpened::class, function (CircuitOpened $event): void {
-        // alert, metric, log…
-    })
-    ->listen(function (object $event): void {
-        // every circuit event
+        error_log("{$event->storageKey} opened ({$event->reason})");
     });
 
-$fuse = Fuse::for(
-    name: 'billing',
-    store: $store,
-    events: $events,
-);
+$fuse = Fuse::for(name: 'billing', store: $store, events: $events);
 ```
-
-`listenFor()` only runs for that class. `listen()` runs for every dispatched object. You can also pass listeners into the constructor: `new CallableCircuitEventDispatcher($listener)`.
-
-### PSR-14 dispatcher
-
-```php
-use Milon\Fuse\Events\Psr14CircuitEventDispatcher;
-use Milon\Fuse\FuseFactory;
-
-$factory = new FuseFactory(
-    store: $store,
-    settings: [],
-    events: new Psr14CircuitEventDispatcher($psr14Dispatcher),
-);
-```
-
-Requires `psr/event-dispatcher`. Fuse calls `$psr14Dispatcher->dispatch($event)` on each transition.
 
 ## Separate operations
 

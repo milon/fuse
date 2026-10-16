@@ -109,4 +109,4 @@ php artisan fuse:status billing --operation=charge
 php artisan fuse:reset billing --operation=charge --force
 ```
 
-For PHPUnit + Saloon mocks, see [Testing](13-testing.html).
+For PHPUnit + Saloon mocks, see [Testing](14-testing.html). Circuit events from `send()` go through the same Laravel dispatcher as `Fuse::for()` — see [Events](13-events.html).

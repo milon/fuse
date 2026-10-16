@@ -205,7 +205,7 @@ Set `FUSE_STORE=database` to use the database store after the migration has run.
 
 `Fuse::for('billing-sdk')` and `Fuse::configFor('billing-sdk')` pick up that override.
 
-Listen for `Milon\Fuse\Events\CircuitOpened` (and `CircuitClosed` / `CircuitHalfOpened`) when a circuit changes state:
+Listen for `Milon\Fuse\Events\CircuitOpened` (and `CircuitClosed` / `CircuitHalfOpened`) when a circuit changes state — see [Events](https://oss.milon.im/fuse/13-events.html):
 
 ```php
 Event::listen(CircuitOpened::class, fn (CircuitOpened $e) => logger()->warning($e->storageKey));

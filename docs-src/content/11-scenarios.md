@@ -406,9 +406,31 @@ $fuse->breaker()->forceClosed();
 
 In Laravel: `php artisan fuse:reset billing-sdk --force`, or `Fuse::for('billing-sdk')->breaker()->forceOpen()` in a command/job.
 
-## 14. PHPUnit + Saloon open reject
+## 14. Listen when a circuit opens
 
-See [Testing](13-testing.html). Pattern:
+```php
+use Milon\Fuse\Events\CallableCircuitEventDispatcher;
+use Milon\Fuse\Events\CircuitOpened;
+use Milon\Fuse\FuseFactory;
+use Milon\Fuse\Stores\ArrayStore;
+
+$events = (new CallableCircuitEventDispatcher)
+    ->listenFor(CircuitOpened::class, function (CircuitOpened $event): void {
+        // alert, metric, log…
+        error_log("{$event->storageKey} opened ({$event->reason})");
+    });
+
+$factory = new FuseFactory(new ArrayStore, events: $events);
+
+$factory->for('billing')->breaker()->forceOpen();
+// listener runs once; later rejected calls throw CircuitOpenException without another open event
+```
+
+In Laravel, use `Event::listen(CircuitOpened::class, …)` instead — see [Events](13-events.html).
+
+## 15. PHPUnit + Saloon open reject
+
+See [Testing](14-testing.html). Pattern:
 
 ```php
 use Milon\Fuse\CircuitOpenException;

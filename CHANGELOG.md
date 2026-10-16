@@ -19,7 +19,7 @@ Developer-experience release: less wiring for Laravel and Saloon, a shared facto
 - Saloon `HasCircuitBreaker` resolves store, config, and events from a container-bound `FuseFactory` / `FuseManager`, so a Laravel connector only needs the trait
 - Default Saloon circuit names strip a trailing `Connector` and kebab-case the rest (`BillingConnector` → `billing`)
 - `CircuitOpenException` includes `storageKey`, `operation`, `app`, and approximate `retryAfterSeconds`
-- Documentation updated for the new APIs (including a Testing chapter)
+- Documentation updated for the new APIs (including Events and Testing chapters)
 
 ## 1.0.0 - 2026-10-02
 

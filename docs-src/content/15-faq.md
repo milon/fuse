@@ -46,7 +46,7 @@ In Laravel: `php artisan fuse:status billing` and `php artisan fuse:reset billin
 
 ## Can I listen when a circuit opens?
 
-Yes. In Laravel, listen for `Milon\Fuse\Events\CircuitOpened` (also `CircuitClosed` and `CircuitHalfOpened`). See [Laravel](07-laravel.html). Outside Laravel, attach `CallableCircuitEventDispatcher` or `Psr14CircuitEventDispatcher` to a `FuseFactory` (or pass `events:` into `Fuse::for()`). See [Plain PHP](04-plain-php.html).
+Yes. Listen for `CircuitOpened`, `CircuitClosed`, or `CircuitHalfOpened`. Full guide: [Events](13-events.html). Laravel uses `Event::listen`; plain PHP uses `CallableCircuitEventDispatcher` or `Psr14CircuitEventDispatcher` on a `FuseFactory`.
 
 ## What is the difference between forceClosed and reset?
 
@@ -67,7 +67,7 @@ FUSE_CACHE_STORE=redis
 
 ## Saloon threw NoMockResponseFoundException instead of CircuitOpenException
 
-Saloon's mock middleware runs before Fuse. The open circuit never got to reject the call because the mock sequence was already empty. Use `Milon\Fuse\Testing\FuseMockClient::mock()` (it pads a spare response), or leave one spare `MockResponse` yourself. Full examples: [Testing](13-testing.html).
+Saloon's mock middleware runs before Fuse. The open circuit never got to reject the call because the mock sequence was already empty. Use `Milon\Fuse\Testing\FuseMockClient::mock()` (it pads a spare response), or leave one spare `MockResponse` yourself. Full examples: [Testing](14-testing.html).
 
 ## Does the package load Laravel when I am not using Laravel?
 

@@ -104,15 +104,7 @@ Each `Fuse::for()` / `fuse('…')` returns a new fuse bound to the shared store 
 
 ## State-change events
 
-When a circuit changes state, Fuse dispatches a plain event object through Laravel's dispatcher:
-
-| Event | When |
-| --- | --- |
-| `Milon\Fuse\Events\CircuitOpened` | Closed or half-open → open |
-| `Milon\Fuse\Events\CircuitHalfOpened` | Open → half-open (cooldown over) |
-| `Milon\Fuse\Events\CircuitClosed` | Open or half-open → closed (including `reset()`) |
-
-Each event carries `name`, `storageKey`, `operation`, `app`, `previous` (`CircuitState`), and `reason` (`failure_threshold`, `probe_failed`, `probes_succeeded`, `cooldown_elapsed`, `forced`, `reset`, …).
+The provider wires Fuse into Laravel's event system. Listen for `CircuitOpened`, `CircuitHalfOpened`, or `CircuitClosed`:
 
 ```php
 use Illuminate\Support\Facades\Event;
@@ -122,12 +114,11 @@ Event::listen(CircuitOpened::class, function (CircuitOpened $event): void {
     logger()->warning('Circuit opened', [
         'key' => $event->storageKey,
         'reason' => $event->reason,
-        'retry_after' => null, // use CircuitOpenException at the call site for retry-after
     ]);
 });
 ```
 
-Saloon connectors that use `HasCircuitBreaker` share the same dispatcher. Outside Laravel, use `CallableCircuitEventDispatcher` or `Psr14CircuitEventDispatcher` on a `FuseFactory` (see [Plain PHP](04-plain-php.html)).
+Saloon connectors that use `HasCircuitBreaker` share the same dispatcher. Event classes, reasons, and plain-PHP / PSR-14 setup are in [Events](13-events.html).
 
 ## Artisan commands
 
